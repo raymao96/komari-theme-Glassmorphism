@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PING_RECORD_MAX_COUNT } from '@/constants/load'
 import { loadPingRecordsWithTasks } from '@/services/history.service'
-import { loadPingMetricStats, queryMetrics } from '@/services/metrics.service'
+import { loadPingMetricStats, loadPublicPingTasks, queryMetrics } from '@/services/metrics.service'
 import { useAppStore } from '@/stores/app'
 import { ACCESSIBLE_LINE_TYPES, getChartSeriesPalette } from '@/utils/chartPalette'
 import { isPingMetric, normalizeMetricSeriesList, PING_LATENCY_METRIC, pingTaskId, pingTaskName } from '@/utils/metricSeries'
@@ -263,7 +263,7 @@ async function loadMetricPingPayload(nodeUuid: string): Promise<{ records: PingR
     ? { start: range.start.toDate().toISOString(), end: range.end.toDate().toISOString() }
     : { hours: selectedHours.value }
 
-  const [statsResult, metricsResult] = await Promise.allSettled([
+  const [statsResult, metricsResult, publicTasksResult] = await Promise.allSettled([
     loadPingMetricStats({ entity_id: nodeUuid, ...metricRangeParams, max_points: PING_RECORD_MAX_COUNT }),
     queryMetrics({
       metric_keys: [PING_LATENCY_METRIC],
@@ -274,6 +274,7 @@ async function loadMetricPingPayload(nodeUuid: string): Promise<{ records: PingR
       max_points: PING_RECORD_MAX_COUNT,
       aggregation: 'avg',
     }),
+    loadPublicPingTasks(),
   ])
 
   const metricStats = statsResult.status === 'fulfilled'
@@ -313,9 +314,23 @@ async function loadMetricPingPayload(nodeUuid: string): Promise<{ records: PingR
     })
   }
 
+  const publicTasks = publicTasksResult.status === 'fulfilled' ? publicTasksResult.value : []
+  const weightById = new Map(publicTasks.map(t => [t.id, t.weight ?? 0]))
+  const orderById = new Map(publicTasks.map((t, idx) => [t.id, idx]))
+
+  const orderedTasks = [...taskMap.values()].sort((a, b) => {
+    const wa = weightById.get(a.id) ?? 0
+    const wb = weightById.get(b.id) ?? 0
+    if (wa !== wb)
+      return wa - wb
+    const oa = orderById.get(a.id) ?? Number.MAX_SAFE_INTEGER
+    const ob = orderById.get(b.id) ?? Number.MAX_SAFE_INTEGER
+    return oa - ob
+  })
+
   return {
     records: metricRecords,
-    tasks: [...taskMap.values()],
+    tasks: orderedTasks,
   }
 }
 
