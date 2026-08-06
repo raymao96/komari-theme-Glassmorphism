@@ -2,9 +2,9 @@
   "name": "Komari Glassmorphism",
   "short": "Glassmorphism",
   "description": "A Glassmorphism theme for Komari",
-  "version": "3.3.3",
-  "author": "sanrokamlan",
-  "url": "https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism",
+  "version": "3.3.3-Fix",
+  "author": "RayStack",
+  "url": "https://github.com/raymao96/komari-theme-Glassmorphism",
   "preview": "preview.png",
   "configuration": {
     "type": "managed",

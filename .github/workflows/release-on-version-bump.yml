@@ -3,7 +3,7 @@ name: Release On Version Bump
 on:
   push:
     branches:
-      - main
+      - Fix
 
 permissions:
   contents: write
