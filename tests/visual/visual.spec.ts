@@ -75,6 +75,20 @@ test('home tiled layout desktop', async ({ page }) => {
   await expect(page).toHaveScreenshot('home-tiled-desktop.png', { fullPage: false })
 })
 
+test('home tiled layout respects custom general cards and order', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await installKomariFixture(page, {
+    earthRenderer: 'tiled',
+    generalCardKeys: ['currentTime', 'offlineNodes'],
+  })
+  await openStablePage(page)
+
+  const cards = page.locator('[data-general-card-key]')
+  await expect(cards).toHaveCount(2)
+  await expect(cards.first()).toHaveAttribute('data-general-card-key', 'currentTime')
+  await expect(cards.nth(1)).toHaveAttribute('data-general-card-key', 'offlineNodes')
+})
+
 test('home mini card metric icons remain accessible', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await installKomariFixture(page, { nodeCardSize: 'mini', hideEarth: true })
@@ -86,6 +100,22 @@ test('home mini card metric icons remain accessible', async ({ page }) => {
   await expect(card.locator('[data-node-metric-icon="traffic"]')).toBeVisible()
   await expect(card.getByRole('img', { name: 'CPU' })).toBeVisible()
   await expect(card.getByRole('img', { name: '内存' })).toBeVisible()
+})
+
+test('node card expiry uses red through 5 days and yellow through 10 days', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await installKomariFixture(page, { expiryThresholds: true, hideEarth: true })
+  await openStablePage(page)
+
+  const criticalCard = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
+  const warningCard = page.getByRole('button', { name: '查看节点 香港边缘节点-超长名称布局测试 详情' })
+  const criticalExpiry = criticalCard.getByText('剩余', { exact: true }).locator('..')
+  const warningExpiry = warningCard.getByText('剩余', { exact: true }).locator('..')
+
+  await expect(criticalExpiry).toContainText('剩余5天')
+  await expect(criticalExpiry).toHaveClass(/text-destructive/)
+  await expect(warningExpiry).toContainText('剩余10天')
+  await expect(warningExpiry).toHaveClass(/text-warning/)
 })
 
 test('free node pricing stays semantic across home, finance, and detail', async ({ page }) => {
@@ -133,6 +163,48 @@ test('detail dark mobile', async ({ page }) => {
   await expect(page).toHaveScreenshot('detail-dark-mobile.png', { fullPage: false })
 })
 
+test('detail short history falls back when metric history omits CPU', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await installKomariFixture(page, { missingCpuMetricHistory: true })
+  await openStablePage(page, '/instance/00000000-0000-4000-8000-000000000001')
+
+  const cpuValue = page.locator('[data-load-chart-card="cpu"] [data-latest-cpu]')
+  const loadRange = page.locator('[data-load-chart-range]')
+  for (const view of ['4 小时', '1 天']) {
+    await loadRange.getByRole('tab', { name: view, exact: true }).click()
+    await expect(cpuValue).toHaveText(/^\d+\.\d$/)
+  }
+})
+
+test('detail history keeps cumulative traffic counters on their last value', async ({ page }) => {
+  const historyCalls: Array<Record<string, unknown>> = []
+
+  page.on('request', (request) => {
+    if (!request.url().endsWith('/api/rpc2'))
+      return
+
+    const payload = request.postDataJSON() as { method?: string, params?: Record<string, unknown> } | null
+    const metricKeys = Array.isArray(payload?.params?.metric_keys) ? payload.params.metric_keys : []
+    if (payload?.method === 'public:queryMetrics' && metricKeys.includes('net.total.up'))
+      historyCalls.push(payload.params ?? {})
+  })
+
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await installKomariFixture(page)
+  await openStablePage(page, '/instance/00000000-0000-4000-8000-000000000001')
+
+  await page.locator('[data-load-chart-range]').getByRole('tab', { name: '1 天', exact: true }).click()
+  await expect.poll(() => historyCalls.length).toBeGreaterThan(0)
+
+  expect(historyCalls.at(-1)).toMatchObject({
+    aggregation: 'avg',
+    aggregation_by_metric: {
+      'net.total.up': 'last',
+      'net.total.down': 'last',
+    },
+  })
+})
+
 test('detail ping requests stay scoped to the current node', async ({ page }) => {
   const currentUuid = '00000000-0000-4000-8000-000000000001'
   const metricCalls: Array<{ method: string, params: Record<string, unknown> }> = []
@@ -171,4 +243,17 @@ test('detail ping requests stay scoped to the current node', async ({ page }) =>
   const detailPingCalls = metricCalls.filter(isPingMetricCall)
   expect(detailPingCalls.length).toBeGreaterThan(0)
   expect(new Set(detailPingCalls.map(call => call.params.entity_id))).toEqual(new Set([currentUuid]))
+})
+
+test('detail ping tasks follow the backend task order', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await installKomariFixture(page, { pingTaskOrdering: true })
+  await openStablePage(page, '/instance/00000000-0000-4000-8000-000000000001')
+
+  const taskCards = page.locator('[data-ping-task-id]')
+  await expect(taskCards).toHaveCount(3)
+  await expect(taskCards.first()).toHaveAttribute('data-ping-task-id', '30')
+  await expect(taskCards.nth(1)).toHaveAttribute('data-ping-task-id', '10')
+  await expect(taskCards.nth(2)).toHaveAttribute('data-ping-task-id', '20')
+  await expect(taskCards).toContainText(['浙江移动', '浙江联通', '浙江电信'])
 })
