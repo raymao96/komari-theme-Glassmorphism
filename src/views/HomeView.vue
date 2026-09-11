@@ -98,14 +98,14 @@ const homeToolPermissionMap: Record<PrivateHomeToolKey, PermissionKey> = {
 
 const quickControlDefinitions: Record<HomeQuickControlKey, QuickControlOption> = {
   favorite: { key: 'favorite', label: '收藏', icon: 'tabler:star' },
-  monthlyCost: { key: 'monthlyCost', label: '月成本', icon: 'tabler:calendar-dollar' },
-  totalTraffic: { key: 'totalTraffic', label: '总流量', icon: 'tabler:database' },
-  upload: { key: 'upload', label: '上行', icon: 'tabler:chevron-up' },
-  download: { key: 'download', label: '下行', icon: 'tabler:chevron-down' },
-  peak: { key: 'peak', label: '峰值', icon: 'tabler:activity' },
-  offline: { key: 'offline', label: '离线', icon: 'tabler:plug-connected-x' },
-  highLoad: { key: 'highLoad', label: '高负载', icon: 'tabler:alert-triangle' },
-  expiring: { key: 'expiring', label: '即将到期', icon: 'tabler:calendar-exclamation' },
+  monthlyCost: { key: 'monthlyCost', label: '每月成本', icon: 'tabler:calendar-dollar' },
+  totalTraffic: { key: 'totalTraffic', label: '總傳輸量', icon: 'tabler:database' },
+  upload: { key: 'upload', label: '上傳', icon: 'tabler:chevron-up' },
+  download: { key: 'download', label: '下載', icon: 'tabler:chevron-down' },
+  peak: { key: 'peak', label: '尖峰值', icon: 'tabler:activity' },
+  offline: { key: 'offline', label: '已離線', icon: 'tabler:plug-connected-x' },
+  highLoad: { key: 'highLoad', label: '高負載', icon: 'tabler:alert-triangle' },
+  expiring: { key: 'expiring', label: '即將到期', icon: 'tabler:calendar-exclamation' },
 }
 
 const homeTools = computed<HomeToolOption[]>(() => {
@@ -113,12 +113,12 @@ const homeTools = computed<HomeToolOption[]>(() => {
     return []
 
   const tools: HomeToolOption[] = [
-    { key: 'nodeCompare', label: '对比', icon: 'tabler:columns-3', description: '最多四台节点实时横向对比' },
+    { key: 'nodeCompare', label: '評比', icon: 'tabler:columns-3', description: '即時效能評比' },
   ]
   if (!appStore.privateFeaturesAllowed)
     return tools
 
-  return [...tools, { key: 'topology', label: '拓扑', icon: 'tabler:route', description: 'ASN / BGP / 上游根因' }, { key: 'providerValue', label: '性价比', icon: 'tabler:scale', description: '单机资源成本对比' }, { key: 'healthSummary', label: '健康', icon: 'tabler:heartbeat', description: '日周月历史健康概览' }, { key: 'snapshotExport', label: '导出', icon: 'tabler:download', description: 'CSV / JSON 数据快照' }, { key: 'auditLog', label: '日志', icon: 'tabler:list-details', description: '管理员操作审计日志' }]
+  return [...tools, { key: 'topology', label: '網路架構圖', icon: 'tabler:route', description: '上游溯源' }, { key: 'providerValue', label: 'CP 值', icon: 'tabler:scale', description: '單機效能與成本排行' }, { key: 'healthSummary', label: '健康狀態', icon: 'tabler:heartbeat', description: '系統健檢' }, { key: 'snapshotExport', label: '匯出', icon: 'tabler:download', description: 'CSV / JSON 快照' }, { key: 'auditLog', label: '稽核紀錄', icon: 'tabler:list-details', description: '管理員異動稽核紀錄' }]
 })
 
 const updateDebouncedSearch = useDebounceFn((value: string) => {
@@ -130,7 +130,7 @@ watch(searchText, (value) => {
 })
 
 const groups = computed(() => [
-  { tab: '全部节点', name: 'all' },
+  { tab: '所有伺服器', name: 'all' },
   ...nodesStore.groups.map(g => ({ tab: g, name: g })),
 ])
 
@@ -280,10 +280,10 @@ const quickControlCounts = computed<Record<HomeQuickControlKey, number>>(() => {
 
 const emptyDescription = computed(() => {
   if (debouncedSearchText.value.trim())
-    return '没有匹配的节点'
+    return '找不到符合條件的伺服器'
   if (activeQuickControl.value)
-    return '当前快捷筛选下暂无节点'
-  return '暂无节点'
+    return '找不到符合條件的伺服器'
+  return '暫無伺服器'
 })
 
 function clearSearch() {
@@ -349,7 +349,7 @@ async function toggleHomeTool(key: Exclude<HomeToolKey, 'nodes'>) {
     const granted = await appStore.requireLoginPermission(permission, { force: true })
     if (!granted) {
       activeHomeTool.value = 'nodes'
-      window.$message?.warning('登录状态已过期，请重新登录后使用高级工具。')
+      window.$message?.warning('登入逾時，請重新登入後使用進階功能。')
       return
     }
   }
@@ -462,7 +462,7 @@ const nodeCardGridClass = computed(() => {
                     class="inline-flex h-6.5 flex-none shrink-0 items-center gap-1 rounded-sm px-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
                     :class="activeQuickControl === control.key ? 'bg-background text-selection shadow-sm' : ''"
                     :aria-pressed="activeQuickControl === control.key"
-                    :aria-label="`切换到${control.label}节点，${quickControlCounts[control.key] ?? 0} 台`"
+                    :aria-label="`切換至 ${control.label} 伺服器，${quickControlCounts[control.key] ?? 0} 台`"
                     @click="setQuickControl(control.key)"
                   >
                     <Icon :icon="control.icon" :width="12" :height="12" />
@@ -491,7 +491,7 @@ const nodeCardGridClass = computed(() => {
               </div>
 
               <Button
-                variant="outline" size="icon" aria-label="卡片视图"
+                variant="outline" size="icon" aria-label="卡片檢視"
                 class="w-8 h-8 border-none bg-background/50 backdrop-blur-xs shadow-none hover:bg-background/60 rounded-md"
                 :class="[appStore.nodeViewMode === 'card' ? '!text-selection !bg-background' : '']"
                 @click="setNodeViewMode('card')"
@@ -499,7 +499,7 @@ const nodeCardGridClass = computed(() => {
                 <Icon icon="tabler:layout-grid" :width="14" :height="14" />
               </Button>
               <Button
-                variant="outline" size="icon" aria-label="列表视图"
+                variant="outline" size="icon" aria-label="列表檢視"
                 class="w-8 h-8 border-none bg-background/50 backdrop-blur-xs shadow-none hover:bg-background/60 rounded-md"
                 :class="[appStore.nodeViewMode === 'list' ? '!text-selection !bg-background' : '']"
                 @click="setNodeViewMode('list')"
@@ -509,8 +509,8 @@ const nodeCardGridClass = computed(() => {
               <div class="relative z-1 h-8" :class="searchText ? 'w-full sm:w-60' : 'w-8'">
                 <div class="absolute top-0 right-0 w-full">
                   <Input
-                    v-model="searchText" placeholder="搜索名称、地区、IP、CPU"
-                    aria-label="搜索节点"
+                    v-model="searchText" placeholder="搜尋名稱、地區、IP、CPU"
+                    aria-label="搜尋伺服器"
                     class="transition-all border-none shadow-none h-8 bg-background/50 backdrop-blur-xs rounded-md hover:!bg-background/60 focus:!pl-7.5 focus:placeholder:!text-muted-foreground focus:!bg-background/80 focus:!ring-slate-500/10"
                     :class="searchText ? '!w-full sm:!w-60 !pl-7.5 pr-7 placeholder:!text-muted-foreground' : 'w-8 placeholder:text-transparent focus:!w-52 sm:focus:!w-60'"
                     @keydown.esc.prevent="clearSearch"
@@ -523,7 +523,7 @@ const nodeCardGridClass = computed(() => {
                     v-if="searchText"
                     type="button"
                     class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label="清空搜索"
+                    aria-label="重設搜尋條件"
                     @click="clearSearch"
                   >
                     <Icon icon="tabler:x" :width="14" :height="14" />
@@ -534,7 +534,7 @@ const nodeCardGridClass = computed(() => {
           </div>
           <TabsContent v-for="g in groups" :key="g.name" :value="g.name" class="pointer-events-auto">
             <div v-if="activeHomeTool !== 'nodes'" class="mb-4 rounded-lg bg-background/50 px-3 py-2 text-sm text-muted-foreground">
-              {{ activeToolTitle }} · 当前分组：{{ g.tab }}（{{ groupNodeList.length }} 台）
+              {{ activeToolTitle }} · 目前分組：{{ g.tab }}（{{ groupNodeList.length }} 台）
             </div>
             <NodeTopologyPanel v-if="activeHomeTool === 'topology'" :nodes="groupNodeList" />
             <NodeComparePanel v-else-if="activeHomeTool === 'nodeCompare'" :nodes="groupNodeList" />

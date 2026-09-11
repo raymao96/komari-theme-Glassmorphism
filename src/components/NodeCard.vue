@@ -133,7 +133,7 @@ const showPrice = computed(() => appStore.privateFeaturesAllowed || !appStore.hi
 
 const uptimeDaysText = computed(() => {
   const days = getUptimeDays(props.node.uptime)
-  return appStore.lang === 'zh-CN' ? `在线 ${days} 天` : `${days} days online`
+  return appStore.lang === 'zh-CN' ? `上線 ${days} 天` : `${days} days online`
 })
 
 const priceText = computed(() => {
@@ -160,13 +160,13 @@ const remainingInfoTags = computed<RemainingInfoTag[]>(() => {
     items.push({ icon: 'tabler:calendar-stats', text: '-', className: expiryClass })
   }
   else if (status === 'expired') {
-    items.push({ icon: 'tabler:calendar-stats', text: lang === 'zh-CN' ? '已过期' : 'Expired', className: expiryClass })
+    items.push({ icon: 'tabler:calendar-stats', text: lang === 'zh-CN' ? '已到期' : 'Expired', className: expiryClass })
   }
   else if (status === 'long_term') {
-    items.push({ icon: 'tabler:calendar-stats', text: lang === 'zh-CN' ? '长期' : 'Long-term', className: expiryClass })
+    items.push({ icon: 'tabler:calendar-stats', text: lang === 'zh-CN' ? '永久' : 'Long-term', className: expiryClass })
   }
   else if (lang === 'zh-CN') {
-    items.push({ icon: 'tabler:calendar-stats', prefix: '剩余', value: String(days), unit: '天', className: expiryClass })
+    items.push({ icon: 'tabler:calendar-stats', prefix: '倒數', value: String(days), unit: '天', className: expiryClass })
   }
   else {
     items.push({ icon: 'tabler:calendar-stats', prefix: 'left', value: String(days), unit: 'days', className: expiryClass })
@@ -174,7 +174,7 @@ const remainingInfoTags = computed<RemainingInfoTag[]>(() => {
 
   if (showPrice.value) {
     const text = isFreePrice(node.price)
-      ? lang === 'zh-CN' ? '无' : 'N/A'
+      ? lang === 'zh-CN' ? '無' : 'N/A'
       : formatCurrencyValue(getRemainingValue(node.price, node.billing_cycle, node.expired_at), node.currency)
     items.push({ icon: 'tabler:coins', text })
   }
@@ -241,7 +241,7 @@ function hasRegion(region: string | null | undefined): boolean {
           class="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-slate-500/10 hover:text-amber-500"
           :class="isFavorite && 'text-amber-500'"
           :aria-label="isFavorite ? `取消收藏 ${props.node.name}` : `收藏 ${props.node.name}`"
-          :title="isFavorite ? '取消收藏' : '收藏节点'"
+          :title="isFavorite ? '取消收藏' : '收藏伺服器'"
           @click.stop="toggleFavorite"
           @keydown.stop
         >
@@ -287,7 +287,7 @@ function hasRegion(region: string | null | undefined): boolean {
 
             <div class="flex flex-col gap-1" :title="swapTooltip">
               <div class="flex justify-between text-xs">
-                <span class="inline-flex items-center text-emerald-500" role="img" title="内存" aria-label="内存">
+                <span class="inline-flex items-center text-emerald-500" role="img" title="RAM" aria-label="RAM">
                   <Icon :icon="NODE_METRIC_ICONS.memory" data-node-metric-icon="memory" width="12" height="12" aria-hidden="true" />
                 </span>
                 <span class="tabular-nums font-medium">{{ memPercentage.toFixed(1) }}%</span>
@@ -304,7 +304,7 @@ function hasRegion(region: string | null | undefined): boolean {
             <div class="flex justify-between text-xs">
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
                 <Icon :icon="NODE_METRIC_ICONS.traffic" data-node-metric-icon="traffic" width="12" height="12" class="shrink-0 text-violet-500" aria-hidden="true" />
-                <span class="truncate">流量</span>
+                <span class="truncate">傳輸用量</span>
               </span>
               <span class="tabular-nums font-medium" :class="trafficPercentageClass">
                 {{ hasTrafficLimit(props.node) ? `${trafficUsedPercentage.toFixed(1)}%` : '∞' }}
@@ -344,7 +344,7 @@ function hasRegion(region: string | null | undefined): boolean {
             <div class="flex justify-between text-xs">
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
                 <Icon :icon="NODE_METRIC_ICONS.memory" data-node-metric-icon="memory" width="13" height="13" class="shrink-0 text-emerald-500" aria-hidden="true" />
-                <span class="truncate">内存</span>
+                <span class="truncate">RAM</span>
               </span>
               <span class="tabular-nums font-medium">{{ memPercentage.toFixed(1) }}%</span>
             </div>
@@ -359,7 +359,7 @@ function hasRegion(region: string | null | undefined): boolean {
             <div class="flex justify-between text-xs">
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
                 <Icon :icon="NODE_METRIC_ICONS.disk" data-node-metric-icon="disk" width="13" height="13" class="shrink-0 text-orange-500" aria-hidden="true" />
-                <span class="truncate">硬盘</span>
+                <span class="truncate">磁碟</span>
               </span>
               <span class="tabular-nums font-medium">{{ diskPercentage.toFixed(1) }}%</span>
             </div>
@@ -374,7 +374,7 @@ function hasRegion(region: string | null | undefined): boolean {
             <div class="flex justify-between text-xs">
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
                 <Icon :icon="NODE_METRIC_ICONS.traffic" data-node-metric-icon="traffic" width="13" height="13" class="shrink-0 text-violet-500" aria-hidden="true" />
-                <span class="truncate">流量</span>
+                <span class="truncate">傳輸用量</span>
               </span>
               <span class="tabular-nums font-medium" :class="trafficPercentageClass">
                 {{ hasTrafficLimit(props.node) ? `${trafficUsedPercentage.toFixed(1)}%` : '∞' }}
@@ -454,11 +454,11 @@ function hasRegion(region: string | null | undefined): boolean {
             class="group/panel relative flex flex-col rounded-lg bg-slate-500/5"
             :class="[nodeCardPingPanelClass, nodeCardPanelClass, !props.node.online ? 'blur-xs opacity-50' : '']"
             :title="latencyPanelTooltip"
-            :aria-label="`${props.node.name} 延迟监测`"
+            :aria-label="`${props.node.name} 延遲檢測`"
             @click.stop="emit('pingClick')"
           >
             <div class="flex items-center justify-between text-[11px] leading-none">
-              <span class="text-muted-foreground">延迟</span>
+              <span class="text-muted-foreground">延遲</span>
               <span class="font-medium">{{ latencyDisplay }}</span>
             </div>
             <div
@@ -483,11 +483,11 @@ function hasRegion(region: string | null | undefined): boolean {
             class="group/panel relative flex flex-col rounded-lg bg-slate-500/5"
             :class="[nodeCardPingPanelClass, nodeCardPanelClass, !props.node.online ? 'blur-xs opacity-50' : '']"
             :title="lossPanelTooltip"
-            :aria-label="`${props.node.name} 丢包监测`"
+            :aria-label="`${props.node.name} 掉包檢測`"
             @click.stop="emit('pingClick')"
           >
             <div class="flex items-center justify-between text-[11px] leading-none">
-              <span class="text-muted-foreground">丢包</span>
+              <span class="text-muted-foreground">掉包</span>
               <span class="font-medium">{{ lossDisplay }}</span>
             </div>
             <div
@@ -525,7 +525,7 @@ function hasRegion(region: string | null | undefined): boolean {
           class="absolute inset-0 flex flex-col items-center justify-center z-10 rounded-xl bg-white/20 dark:bg-black/20 backdrop-blur-[2px]"
         >
           <div class="text-sm font-semibold text-destructive">
-            离线
+            已離線
           </div>
           <div class="text-[11px] text-muted-foreground mt-1">
             {{ offlineTime }}

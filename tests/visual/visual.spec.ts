@@ -109,12 +109,12 @@ test('node card expiry uses red through 5 days and yellow through 10 days', asyn
 
   const criticalCard = page.getByRole('button', { name: '查看节点 主控-洛杉矶 详情' })
   const warningCard = page.getByRole('button', { name: '查看节点 香港边缘节点-超长名称布局测试 详情' })
-  const criticalExpiry = criticalCard.getByText('剩余', { exact: true }).locator('..')
-  const warningExpiry = warningCard.getByText('剩余', { exact: true }).locator('..')
+  const criticalExpiry = criticalCard.getByText('倒數', { exact: true }).locator('..')
+  const warningExpiry = warningCard.getByText('倒數', { exact: true }).locator('..')
 
-  await expect(criticalExpiry).toContainText('剩余5天')
+  await expect(criticalExpiry).toContainText('倒數5天')
   await expect(criticalExpiry).toHaveClass(/text-destructive/)
-  await expect(warningExpiry).toContainText('剩余10天')
+  await expect(warningExpiry).toContainText('倒數10天')
   await expect(warningExpiry).toHaveClass(/text-warning/)
 })
 

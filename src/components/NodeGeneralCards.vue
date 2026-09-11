@@ -136,11 +136,11 @@ function formatTopNodePercentage(metric: TopNodeMetric | null): { value: string,
 
 function formatNodeNames(nodes: NodeData[], formatter?: (node: NodeData) => string, max = 8): string {
   if (nodes.length === 0)
-    return '暂无节点'
+    return '暫無節點'
 
   const lines = nodes.slice(0, max).map(node => formatter ? formatter(node) : node.name)
   if (nodes.length > max)
-    lines.push(`… 还有 ${nodes.length - max} 台`)
+    lines.push(`… 還有 ${nodes.length - max} 台`)
   return lines.join('\n')
 }
 
@@ -168,7 +168,7 @@ function getKnownDistribution(nodes: NodeData[], selector: (node: NodeData) => s
 
 function formatDistributionTooltip(entries: Array<[string, number]>): string {
   if (entries.length === 0)
-    return '暂无数据'
+    return '暫無數據'
 
   return entries.slice(0, 8).map(([key, count]) => `${key}: ${count} 台`).join('\n')
 }
@@ -178,7 +178,7 @@ function formatExpiryNode(node: NodeData): string {
   if (days === null)
     return `${node.name}: 未知`
   if (days <= 0)
-    return `${node.name}: 已过期`
+    return `${node.name}: 已到期`
   return `${node.name}: ${days} 天`
 }
 
@@ -394,8 +394,8 @@ const formattedTotalValue = computed(() => {
 })
 const totalValueTooltip = computed(() => {
   if (!showPrice.value)
-    return '总价值\n***'
-  return `总价值\n${formattedTotalValue.value.symbol}${formattedTotalValue.value.value}`
+    return '總價值\n***'
+  return `總價值\n${formattedTotalValue.value.symbol}${formattedTotalValue.value.value}`
 })
 
 const trafficPeakCard = computed(() => formatTopNodeSpeed(trafficPeak.value))
@@ -417,7 +417,7 @@ const currentDateText = computed(() => currentTime.value.toLocaleDateString('zh-
 const connectionPeakTooltip = computed(() => {
   const metric = connectionPeakNode.value
   if (!metric)
-    return '暂无数据'
+    return '暫無數據'
   return `${metric.node.name}\nTCP ${formatCount(metric.node.connections || 0)}\nUDP ${formatCount(metric.node.connections_udp || 0)}`
 })
 const monthlyCostCard = computed(() => formatCostCard(monthlyCostCNY.value))
@@ -428,7 +428,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'currentTime':
       return {
         key: 'currentTime',
-        label: '当前时间',
+        label: '現在時間',
         icon: 'tabler:clock',
         value: currentTimeText.value,
         tooltip: currentDateText.value,
@@ -436,7 +436,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'memory':
       return {
         key: 'memory',
-        label: '内存用量',
+        label: '記憶體用量',
         icon: 'icon-park-outline:memory',
         value: formattedMemoryUsed.value.value,
         unit: `${formattedMemoryUsed.value.unit} / ${formattedMemoryTotal.value.value} ${formattedMemoryTotal.value.unit}`,
@@ -444,7 +444,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'disk':
       return {
         key: 'disk',
-        label: '硬盘用量',
+        label: '磁碟用量',
         icon: 'tabler:server-2',
         value: formattedDiskUsed.value.value,
         unit: `${formattedDiskUsed.value.unit} / ${formattedDiskTotal.value.value} ${formattedDiskTotal.value.unit}`,
@@ -452,7 +452,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'remainingValue':
       return {
         key: 'remainingValue',
-        label: '剩余价值',
+        label: '剩餘價值',
         icon: 'tabler:cash',
         value: showPrice.value ? `${formattedRemainingValue.value.symbol}${formattedRemainingValue.value.value}` : '***',
         tooltip: totalValueTooltip.value,
@@ -461,7 +461,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'totalTraffic':
       return {
         key: 'totalTraffic',
-        label: '累计流量',
+        label: '總傳輸量',
         icon: 'tabler:download',
         value: totalTrafficTooltip.value.value,
         unit: totalTrafficTooltip.value.unit,
@@ -470,7 +470,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'uploadSpeed':
       return {
         key: 'uploadSpeed',
-        label: '实时上行',
+        label: '即時上傳',
         icon: 'tabler:chevrons-up',
         value: formattedSpeedUp.value.value,
         unit: formattedSpeedUp.value.unit,
@@ -478,7 +478,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'downloadSpeed':
       return {
         key: 'downloadSpeed',
-        label: '实时下行',
+        label: '即時下載',
         icon: 'tabler:chevrons-down',
         value: formattedSpeedDown.value.value,
         unit: formattedSpeedDown.value.unit,
@@ -486,7 +486,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'onlineNodes':
       return {
         key: 'onlineNodes',
-        label: '在线节点',
+        label: '上線節點',
         icon: 'tabler:activity-heartbeat',
         value: formatCount(onlineNodeCount.value),
         unit: `/ ${formatCount(totalNodeCount.value)}`,
@@ -511,7 +511,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'avgLoad':
       return {
         key: 'avgLoad',
-        label: '平均负载',
+        label: '平均負載',
         icon: 'tabler:chart-line',
         value: formatDecimal(avgLoad.value, 2),
         tooltip: `1m ${formatDecimal(avgLoad.value, 2)}\n5m ${formatDecimal(avgLoad5.value, 2)}\n15m ${formatDecimal(avgLoad15.value, 2)}`,
@@ -519,7 +519,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'swap':
       return {
         key: 'swap',
-        label: '交换内存',
+        label: 'Swap',
         icon: 'icon-park-outline:switch',
         value: formattedSwapUsed.value.value,
         unit: `${formattedSwapUsed.value.unit} / ${formattedSwapTotal.value.value} ${formattedSwapTotal.value.unit}`,
@@ -527,14 +527,14 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'processes':
       return {
         key: 'processes',
-        label: '进程总数',
+        label: '處理程序數',
         icon: 'tabler:list-numbers',
         value: formatCount(totalProcesses.value),
       }
     case 'connections':
       return {
         key: 'connections',
-        label: '连接数',
+        label: '連線數',
         icon: 'tabler:plug-connected',
         value: formatCount(totalConnectionsTcp.value + totalConnectionsUdp.value),
         tooltip: `TCP ${formatCount(totalConnectionsTcp.value)}\nUDP ${formatCount(totalConnectionsUdp.value)}`,
@@ -550,7 +550,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'gpuNodes':
       return {
         key: 'gpuNodes',
-        label: 'GPU 节点',
+        label: 'GPU 節點',
         icon: 'tabler:device-imac',
         value: formatCount(gpuNodes.value.length),
         unit: `/ ${formatCount(totalNodeCount.value)}`,
@@ -559,7 +559,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'gpuPeakNode':
       return {
         key: 'gpuPeakNode',
-        label: 'GPU 峰值',
+        label: 'GPU 尖峰',
         icon: 'tabler:chart-histogram',
         value: gpuPeakCard.value.value,
         unit: gpuPeakCard.value.unit,
@@ -568,18 +568,18 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'trafficQuota':
       return {
         key: 'trafficQuota',
-        label: '流量配额',
+        label: '傳輸量佔比',
         icon: 'tabler:gauge',
         value: trafficQuota.value.limit > 0 ? formatDecimal(trafficQuotaPercentage.value) : '-',
         unit: trafficQuota.value.limit > 0 ? '%' : undefined,
         tooltip: trafficQuota.value.limit > 0
           ? `${formatBytesText(trafficQuota.value.used)} / ${formatBytesText(trafficQuota.value.limit)}`
-          : '无限流量',
+          : '不限',
       }
     case 'trafficPeak':
       return {
         key: 'trafficPeak',
-        label: '实时峰值',
+        label: '即時尖峰',
         icon: 'tabler:activity',
         value: trafficPeakCard.value.value,
         unit: trafficPeakCard.value.unit,
@@ -588,7 +588,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'uploadPeakNode':
       return {
         key: 'uploadPeakNode',
-        label: '上行最高',
+        label: '上傳尖峰',
         icon: 'tabler:arrow-big-up-lines',
         value: uploadPeakCard.value.value,
         unit: uploadPeakCard.value.unit,
@@ -597,7 +597,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'downloadPeakNode':
       return {
         key: 'downloadPeakNode',
-        label: '下行最高',
+        label: '下載尖峰',
         icon: 'tabler:arrow-big-down-lines',
         value: downloadPeakCard.value.value,
         unit: downloadPeakCard.value.unit,
@@ -606,7 +606,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'offlineNodes':
       return {
         key: 'offlineNodes',
-        label: '离线节点',
+        label: '離線節點',
         icon: 'tabler:plug-connected-x',
         value: formatCount(offlineNodes.value.length),
         unit: `/ ${formatCount(totalNodeCount.value)}`,
@@ -615,7 +615,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'highLoadNodes':
       return {
         key: 'highLoadNodes',
-        label: '高负载节点',
+        label: '高負載節點',
         icon: 'tabler:alert-triangle',
         value: formatCount(highLoadNodes.value.length),
         unit: `/ ${formatCount(onlineNodeCount.value)}`,
@@ -627,7 +627,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'expiringNodes':
       return {
         key: 'expiringNodes',
-        label: '即将到期',
+        label: '即將到期',
         icon: 'tabler:calendar-exclamation',
         value: formatCount(expiringNodes.value.length),
         unit: '台',
@@ -636,7 +636,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'trafficWarnings':
       return {
         key: 'trafficWarnings',
-        label: '流量预警',
+        label: '傳輸量預警',
         icon: 'tabler:traffic-cone',
         value: formatCount(trafficWarningNodes.value.length),
         unit: '台',
@@ -645,7 +645,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'connectionPeakNode':
       return {
         key: 'connectionPeakNode',
-        label: '连接峰值',
+        label: '連線尖峰',
         icon: 'tabler:plug-connected',
         value: connectionPeakNode.value ? formatCount(connectionPeakNode.value.value) : '-',
         tooltip: connectionPeakTooltip.value,
@@ -653,16 +653,16 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'regionDistribution':
       return {
         key: 'regionDistribution',
-        label: '地区分布',
+        label: '地區分佈',
         icon: 'tabler:map-pin',
         value: formatCount(regionDistribution.value.length),
-        unit: '个',
+        unit: '個',
         tooltip: formatDistributionTooltip(regionDistribution.value),
       }
     case 'systemDistribution':
       return {
         key: 'systemDistribution',
-        label: '系统分布',
+        label: '系統分佈',
         icon: 'tabler:device-desktop',
         value: systemDistribution.value[0]?.[0] ?? '-',
         unit: systemDistribution.value[0] ? `${systemDistribution.value[0][1]} 台` : undefined,
@@ -671,7 +671,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'virtualizationDistribution':
       return {
         key: 'virtualizationDistribution',
-        label: '虚拟化',
+        label: '虛擬化類型',
         icon: 'tabler:box-multiple',
         value: virtualizationDistribution.value[0]?.[0] ?? '-',
         unit: virtualizationDistribution.value[0] ? `${virtualizationDistribution.value[0][1]} 台` : undefined,
@@ -680,7 +680,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'monthlyCost':
       return {
         key: 'monthlyCost',
-        label: '月费用估算',
+        label: '每月成本',
         icon: 'tabler:calendar-dollar',
         value: monthlyCostCard.value.value,
         unit: monthlyCostCard.value.unit,
@@ -688,7 +688,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
     case 'yearlyCost':
       return {
         key: 'yearlyCost',
-        label: '年费用估算',
+        label: '每年成本',
         icon: 'tabler:receipt-2',
         value: yearlyCostCard.value.value,
         unit: yearlyCostCard.value.unit,

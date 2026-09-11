@@ -22,8 +22,8 @@ const actionButtons = computed(() => {
     auto: appStore.managedThemeMode === 'beijing'
       ? appStore.isBeijingDaytime ? '自动主题：北京时间日间' : '自动主题：北京时间夜间'
       : appStore.managedThemeMode === 'light' ? '自动主题：后台浅色' : '自动主题：后台深色',
-    light: '浅色主题',
-    dark: '深色主题',
+    light: '亮色主題',
+    dark: '暗色主题',
   } as const
 
   const themeIconMap = {
@@ -36,7 +36,7 @@ const actionButtons = computed(() => {
 
   if (router.currentRoute.value.name === 'home' && appStore.homeToolsEnabled) {
     buttons.push({
-      title: appStore.homeAdvancedToolsVisible ? '收起首页工具' : '显示首页工具',
+      title: appStore.homeAdvancedToolsVisible ? '隱藏進階功能列' : '顯示進階功能列',
       icon: 'tabler:tools',
       action: 'toggleHomeTools',
       pressed: appStore.homeAdvancedToolsVisible,
@@ -44,14 +44,14 @@ const actionButtons = computed(() => {
   }
 
   buttons.push({
-    title: `${themeTitleMap[appStore.themeMode]}（点击切换）`,
+    title: `${themeTitleMap[appStore.themeMode]}（點選切換）`,
     icon: themeIconMap[appStore.themeMode],
     action: 'toggleTheme',
   })
 
   if (!appStore.loading && (appStore.privateFeaturesAllowed || !appStore.hideAdminEntryWhenLoggedOut)) {
     buttons.push({
-      title: '后台管理',
+      title: '進入主控台',
       icon: 'icon-park-outline:setting',
       action: 'jumpToSetting',
     })

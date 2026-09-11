@@ -100,11 +100,11 @@ function formatLoad(value: number): string {
 }
 
 function formatStatus(online: boolean): string {
-  return online ? '在线' : '离线'
+  return online ? '上線' : '離線'
 }
 
 function formatLimit(bytes: number): string {
-  return bytes > 0 ? formatBytes(bytes) : '无限制'
+  return bytes > 0 ? formatBytes(bytes) : '不限'
 }
 
 function formatDate(value: string): string {
@@ -205,43 +205,43 @@ const totalDiskBytes = computed(() => props.nodes.reduce((sum, node) => sum + (n
 const totalMonthlyCostCNY = computed(() => rows.value.reduce((sum, row) => sum + row.monthlyCostCNY, 0))
 
 const csvColumns: CsvColumn[] = [
-  { label: '节点 ID', value: row => row.uuid },
-  { label: '节点名称', value: row => row.name },
-  { label: '状态', value: row => formatStatus(row.online) },
-  { label: '分组', value: row => row.group || '-' },
-  { label: '地区', value: row => row.region || '-' },
+  { label: '伺服器 ID', value: row => row.uuid },
+  { label: '伺服器名稱', value: row => row.name },
+  { label: '狀態', value: row => formatStatus(row.online) },
+  { label: '分組', value: row => row.group || '-' },
+  { label: '地區', value: row => row.region || '-' },
   { label: 'IPv4', value: row => row.ipv4 || '-' },
   { label: 'IPv6', value: row => row.ipv6 || '-' },
-  { label: '服务商', value: row => row.provider || '-' },
+  { label: '服務商', value: row => row.provider || '-' },
   { label: 'ASN', value: row => row.asn || '-' },
-  { label: '组织', value: row => row.org || '-' },
-  { label: '系统', value: row => row.os || '-' },
-  { label: '架构', value: row => row.arch || '-' },
-  { label: '虚拟化', value: row => row.virtualization || '-' },
-  { label: 'CPU 型号', value: row => row.cpuName || '-' },
+  { label: 'ISP 業者', value: row => row.org || '-' },
+  { label: '系統', value: row => row.os || '-' },
+  { label: '架構', value: row => row.arch || '-' },
+  { label: '虛擬化技術', value: row => row.virtualization || '-' },
+  { label: 'CPU 型號', value: row => row.cpuName || '-' },
   { label: 'CPU 核心', value: row => row.cpuCores },
   { label: 'CPU 使用率', value: row => formatPercent(row.cpuUsage) },
-  { label: '1 分钟负载', value: row => formatLoad(row.load1) },
-  { label: '内存使用', value: row => formatBytes(row.memoryUsedBytes) },
-  { label: '内存总量', value: row => formatBytes(row.memoryTotalBytes) },
-  { label: '内存使用率', value: row => formatPercent(getPercent(row.memoryUsedBytes, row.memoryTotalBytes)) },
-  { label: '硬盘使用', value: row => formatBytes(row.diskUsedBytes) },
-  { label: '硬盘总量', value: row => formatBytes(row.diskTotalBytes) },
-  { label: '硬盘使用率', value: row => formatPercent(getPercent(row.diskUsedBytes, row.diskTotalBytes)) },
-  { label: '流量使用', value: row => formatBytes(row.trafficUsedBytes) },
-  { label: '流量限额', value: row => formatLimit(row.trafficLimitBytes) },
-  { label: '流量使用率', value: row => row.trafficLimitBytes > 0 ? formatPercent(row.trafficUsedPercent) : '无限制' },
-  { label: '实时上行', value: row => formatSpeed(row.netOutBytesPerSecond) },
-  { label: '实时下行', value: row => formatSpeed(row.netInBytesPerSecond) },
-  { label: '运行时间', value: row => formatUptime(row.uptimeSeconds) },
-  { label: '价格', value: row => formatPrice(row) },
-  { label: '计费周期', value: row => formatBillingCycle(row.billingCycleDays) },
-  { label: '月成本', value: row => formatMonthlyCost(row) },
+  { label: '1 分鐘負載', value: row => formatLoad(row.load1) },
+  { label: '記憶體用量', value: row => formatBytes(row.memoryUsedBytes) },
+  { label: '記憶體總容量', value: row => formatBytes(row.memoryTotalBytes) },
+  { label: '記憶體使用率', value: row => formatPercent(getPercent(row.memoryUsedBytes, row.memoryTotalBytes)) },
+  { label: '磁碟用量', value: row => formatBytes(row.diskUsedBytes) },
+  { label: '磁碟總容量', value: row => formatBytes(row.diskTotalBytes) },
+  { label: '磁碟使用率', value: row => formatPercent(getPercent(row.diskUsedBytes, row.diskTotalBytes)) },
+  { label: '傳輸用量', value: row => formatBytes(row.trafficUsedBytes) },
+  { label: '傳輸用量上限', value: row => formatLimit(row.trafficLimitBytes) },
+  { label: '傳輸用量佔比', value: row => row.trafficLimitBytes > 0 ? formatPercent(row.trafficUsedPercent) : '不限' },
+  { label: '即時上傳', value: row => formatSpeed(row.netOutBytesPerSecond) },
+  { label: '即時下載', value: row => formatSpeed(row.netInBytesPerSecond) },
+  { label: '運作時間', value: row => formatUptime(row.uptimeSeconds) },
+  { label: '總價', value: row => formatPrice(row) },
+  { label: '計費週期', value: row => formatBillingCycle(row.billingCycleDays) },
+  { label: '每月成本', value: row => formatMonthlyCost(row) },
   { label: '每核月成本', value: row => formatValueCost(getCostPerCore(row)) },
-  { label: '每 GB 内存月成本', value: row => formatValueCost(getCostPerMemoryGb(row)) },
-  { label: '每 GB 流量月成本', value: row => formatValueCost(getCostPerTrafficGb(row)) },
-  { label: '到期时间', value: row => formatDate(row.expiredAt) },
-  { label: '标签', value: row => row.tags || '-' },
+  { label: '每 GB RAM 月成本', value: row => formatValueCost(getCostPerMemoryGb(row)) },
+  { label: '每 GB 傳輸量月成本', value: row => formatValueCost(getCostPerTrafficGb(row)) },
+  { label: '到期時間', value: row => formatDate(row.expiredAt) },
+  { label: '標籤', value: row => row.tags || '-' },
 ]
 
 function yieldToBrowser(): Promise<void> {
@@ -306,7 +306,7 @@ function buildJsonNode(row: SnapshotRow) {
       traffic: {
         used: formatBytes(row.trafficUsedBytes),
         limit: formatLimit(row.trafficLimitBytes),
-        usage: row.trafficLimitBytes > 0 ? formatPercent(row.trafficUsedPercent) : '无限制',
+        usage: row.trafficLimitBytes > 0 ? formatPercent(row.trafficUsedPercent) : '不限',
       },
       network: {
         upload: formatSpeed(row.netOutBytesPerSecond),
@@ -331,7 +331,7 @@ function buildJsonNode(row: SnapshotRow) {
 async function verifySnapshotExportPermission(): Promise<boolean> {
   const granted = await appStore.requireLoginPermission('snapshotExport', { force: true })
   if (!granted) {
-    window.$message?.warning('登录状态已过期，请重新登录后导出快照。')
+    window.$message?.warning('登入逾時，請重新登入。')
     return false
   }
 
@@ -339,7 +339,7 @@ async function verifySnapshotExportPermission(): Promise<boolean> {
     return true
 
   if (exportPasswordInput.value !== appStore.exportSecondaryPassword) {
-    window.$message?.warning('导出二级密码错误。')
+    window.$message?.warning('無法匯出安全密碼。')
     return false
   }
 
@@ -428,46 +428,46 @@ async function exportCsv(): Promise<void> {
     <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
       <CardX size="small" class="border-none bg-background/50">
         <div class="text-xs text-muted-foreground">
-          导出节点
+          可匯出伺服器總數
         </div>
         <div class="mt-1 text-2xl font-bold">
           {{ props.nodes.length }}
         </div>
         <div class="mt-1 text-[11px] text-muted-foreground">
-          在线 {{ onlineCount }} / 离线 {{ props.nodes.length - onlineCount }}
+          上線 {{ onlineCount }} / 離線 {{ props.nodes.length - onlineCount }}
         </div>
       </CardX>
       <CardX size="small" class="border-none bg-background/50">
         <div class="text-xs text-muted-foreground">
-          CPU
+          CPU 
         </div>
         <div class="mt-1 text-2xl font-bold">
           {{ totalCpuCores }}
         </div>
         <div class="mt-1 text-[11px] text-muted-foreground">
-          核心合计
+          總計核心數
         </div>
       </CardX>
       <CardX size="small" class="border-none bg-background/50">
         <div class="text-xs text-muted-foreground">
-          内存 / 硬盘
+          磁碟總消耗
         </div>
         <div class="mt-1 text-lg font-bold">
           {{ formatBytes(totalMemoryBytes) }} / {{ formatBytes(totalDiskBytes) }}
         </div>
         <div class="mt-1 text-[11px] text-muted-foreground">
-          规格合计
+          總計用量與總容量
         </div>
       </CardX>
       <CardX size="small" class="border-none bg-background/50">
         <div class="text-xs text-muted-foreground">
-          月成本
+          每月成本
         </div>
         <div class="mt-1 text-2xl font-bold">
           {{ financeHelper.formatFinanceAmount(totalMonthlyCostCNY, 'CNY').symbol }}{{ financeHelper.formatFinanceAmount(totalMonthlyCostCNY, 'CNY').value }}
         </div>
         <div class="mt-1 text-[11px] text-muted-foreground">
-          CNY 估算
+          以人民幣為基準計算
         </div>
       </CardX>
     </div>
@@ -476,33 +476,33 @@ async function exportCsv(): Promise<void> {
       <template #header>
         <div>
           <div class="font-semibold">
-            当前数据快照导出
+            匯出數據快照
           </div>
           <div class="text-xs text-muted-foreground">
-            导出当前已加载的可见节点规格、状态、成本、厂商和 ASN 信息。
+            匯出目前所見伺服器規格、狀態、成本、廠商與 ASN 網路資訊。
           </div>
         </div>
       </template>
       <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div class="space-y-2 text-sm text-muted-foreground">
-          <div>JSON 按节点分组并保留人类可读单位；CSV 使用中文表头、性价比指标和 UTF-8 BOM，直接用 Excel 打开不应乱码。</div>
+          <div>JSON：依伺服器分組並保留易讀的單位格式；CSV：採中文欄位名稱、CP 值指標及 UTF-8 BOM 編碼，以確保使用 Excel 讀取時不出現亂碼。</div>
           <Input
             v-if="appStore.exportSecondaryPassword"
             v-model="exportPasswordInput"
             type="password"
             autocomplete="off"
-            placeholder="导出二级密码"
+            placeholder="匯出安全密碼"
             class="max-w-xs border-none bg-background/60"
           />
         </div>
         <div class="flex gap-2">
           <Button variant="outline" class="bg-background/60" :disabled="Boolean(exporting)" @click="exportJson">
             <Icon :icon="exporting === 'json' ? 'tabler:loader-2' : 'tabler:braces'" width="14" height="14" :class="exporting === 'json' && 'animate-spin'" />
-            {{ exporting === 'json' ? '导出中' : '导出 JSON' }}
+            {{ exporting === 'json' ? '正在匯出' : '匯出 JSON' }}
           </Button>
           <Button variant="outline" class="bg-background/60" :disabled="Boolean(exporting)" @click="exportCsv">
             <Icon :icon="exporting === 'csv' ? 'tabler:loader-2' : 'tabler:file-spreadsheet'" width="14" height="14" :class="exporting === 'csv' && 'animate-spin'" />
-            {{ exporting === 'csv' ? '导出中' : '导出 CSV' }}
+            {{ exporting === 'csv' ? '正在匯出' : '匯出 CSV' }}
           </Button>
         </div>
       </div>
@@ -511,29 +511,29 @@ async function exportCsv(): Promise<void> {
     <CardX class="border-none bg-background/50" content-class="overflow-x-auto">
       <template #header>
         <div class="font-semibold">
-          导出预览
+          預覽匯出資訊
         </div>
       </template>
       <table class="min-w-[900px] w-full text-left text-sm">
         <thead class="text-xs text-muted-foreground">
           <tr class="border-b border-border/60">
             <th class="px-2 py-2 font-medium">
-              节点
+              伺服器
             </th>
             <th class="px-2 py-2 font-medium">
-              状态
+              狀態
             </th>
             <th class="px-2 py-2 font-medium">
-              厂商 / ASN
+              廠商 / ASN
             </th>
             <th class="px-2 py-2 font-medium">
-              规格
+              規格描述
             </th>
             <th class="px-2 py-2 font-medium">
-              资源
+              伺服器負載
             </th>
             <th class="px-2 py-2 font-medium">
-              月成本
+              每月成本
             </th>
           </tr>
         </thead>
@@ -552,7 +552,7 @@ async function exportCsv(): Promise<void> {
               {{ row.cpuCores }} 核 · {{ formatBytes(row.memoryTotalBytes) }} · {{ formatBytes(row.diskTotalBytes) }}
             </td>
             <td class="px-2 py-3 text-xs text-muted-foreground">
-              CPU {{ formatPercent(row.cpuUsage) }} · 流量 {{ row.trafficLimitBytes > 0 ? formatPercent(row.trafficUsedPercent) : '无限制' }}
+              CPU {{ formatPercent(row.cpuUsage) }} · 傳輸量 {{ row.trafficLimitBytes > 0 ? formatPercent(row.trafficUsedPercent) : '不限' }}
             </td>
             <td class="px-2 py-3 tabular-nums">
               {{ formatMonthlyCost(row) }}
@@ -561,7 +561,7 @@ async function exportCsv(): Promise<void> {
         </tbody>
       </table>
       <div v-if="rows.length > 20" class="pt-3 text-xs text-muted-foreground">
-        仅预览前 20 条，导出文件包含全部 {{ rows.length }} 条。
+        預覽匯出資訊僅包含前 20 筆資料，匯出檔案包含一共 {{ rows.length }} 筆資料。
       </div>
     </CardX>
   </div>

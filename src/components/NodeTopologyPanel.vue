@@ -82,11 +82,11 @@ function getNodeAsn(node: NodeData): string {
 }
 
 function getNodeOrg(node: NodeData): string {
-  return metadataOf(node)?.geo?.org?.trim() || metadataOf(node)?.provider?.network?.name || '未知网络'
+  return metadataOf(node)?.geo?.org?.trim() || metadataOf(node)?.provider?.network?.name || '不明網路'
 }
 
 function getNodeProvider(node: NodeData): string {
-  return metadataOf(node)?.provider?.displayName || '未知厂商'
+  return metadataOf(node)?.provider?.displayName || '不明廠商'
 }
 
 function parseUpstreamRef(text: string): string {
@@ -244,8 +244,8 @@ const rootCauseGroups = computed<RootCauseGroup[]>(() => {
   for (const group of byUpstream.values()) {
     groups.push({
       key: `upstream:${group.upstream.uuid}`,
-      title: `${group.upstream.name} 上游异常`,
-      description: `${group.nodes.length} 台下游节点可能受该上游影响，优先检查反代/入口节点。`,
+      title: `${group.upstream.name} 上游節點異常`,
+      description: `${group.nodes.length} 台下游節點可能受該上游影響，請優先檢查反向代理或對外入口節點。`,
       icon: 'tabler:git-branch-deleted',
       severity: 'critical',
       affectedNodes: group.nodes,
@@ -265,8 +265,8 @@ const rootCauseGroups = computed<RootCauseGroup[]>(() => {
 
     groups.push({
       key: `asn:${asnGroup.key}`,
-      title: `${asnGroup.asn} 批量异常`,
-      description: `${offlineNodes.length} 台同 ASN / 同网络节点离线，可能是机房或线路层面问题。`,
+      title: `${asnGroup.asn} 大量異常`,
+      description: `${offlineNodes.length} 台相同 ASN / 相同網路的節點離線，可能為機房或線路端異常。`,
       icon: 'tabler:network-off',
       severity: 'warning',
       affectedNodes: offlineNodes,
@@ -277,8 +277,8 @@ const rootCauseGroups = computed<RootCauseGroup[]>(() => {
   if (standalone.length > 0) {
     groups.push({
       key: 'standalone',
-      title: '独立离线节点',
-      description: '未发现共同上游或 ASN 聚集特征，更像单机异常。',
+      title: '獨立離線節點',
+      description: '未發現共同上層上游或 ASN 聚集特徵，較像是單機故障。',
       icon: 'tabler:server-off',
       severity: 'info',
       affectedNodes: standalone,
@@ -299,7 +299,7 @@ function severityClass(severity: RootCauseGroup['severity']): string {
 function getNodeMetaLine(item: TopologyNodeView): string {
   return [getRegionDisplayName(item.node.region), item.asn, item.provider]
     .filter(Boolean)
-    .join(' · ') || '未知网络'
+    .join(' · ') || '不明網路'
 }
 </script>
 
@@ -308,7 +308,7 @@ function getNodeMetaLine(item: TopologyNodeView): string {
     <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
       <CardX size="small" class="border-none bg-background/50">
         <div class="text-xs text-muted-foreground">
-          节点
+          伺服器
         </div>
         <div class="mt-1 text-2xl font-bold">
           {{ props.nodes.length }}
@@ -316,7 +316,7 @@ function getNodeMetaLine(item: TopologyNodeView): string {
       </CardX>
       <CardX size="small" class="border-none bg-background/50">
         <div class="text-xs text-muted-foreground">
-          在线 / 离线
+          上線 / 離線
         </div>
         <div class="mt-1 text-2xl font-bold">
           <span class="text-green-600">{{ totalOnline }}</span> / <span class="text-red-500">{{ totalOffline }}</span>
@@ -324,7 +324,7 @@ function getNodeMetaLine(item: TopologyNodeView): string {
       </CardX>
       <CardX size="small" class="border-none bg-background/50">
         <div class="text-xs text-muted-foreground">
-          ASN / 网络
+          ASN / 網路
         </div>
         <div class="mt-1 text-2xl font-bold">
           {{ asnGroups.length }}
@@ -332,7 +332,7 @@ function getNodeMetaLine(item: TopologyNodeView): string {
       </CardX>
       <CardX size="small" class="border-none bg-background/50">
         <div class="text-xs text-muted-foreground">
-          拓扑边
+          路由鏈路數
         </div>
         <div class="mt-1 text-2xl font-bold">
           {{ tagEdges.length || asnEdges }}
@@ -343,15 +343,15 @@ function getNodeMetaLine(item: TopologyNodeView): string {
     <div class="flex flex-wrap gap-2">
       <Button size="sm" variant="ghost" class="bg-background/50" :class="activeMode === 'asn' && 'text-green-600 bg-background'" @click="activeMode = 'asn'">
         <Icon icon="tabler:world-share" width="14" height="14" />
-        ASN / BGP 视图
+        ASN / BGP 檢視
       </Button>
       <Button size="sm" variant="ghost" class="bg-background/50" :class="activeMode === 'tags' && 'text-green-600 bg-background'" @click="activeMode = 'tags'">
         <Icon icon="tabler:git-branch" width="14" height="14" />
-        标签上游视图
+        自訂上游關聯
       </Button>
       <Button size="sm" variant="ghost" class="bg-background/50" :class="activeMode === 'rootcause' && 'text-green-600 bg-background'" @click="activeMode = 'rootcause'">
         <Icon icon="tabler:alert-triangle" width="14" height="14" />
-        根因分组
+        問題歸類
       </Button>
     </div>
 
@@ -359,10 +359,10 @@ function getNodeMetaLine(item: TopologyNodeView): string {
       <template #header>
         <div>
           <div class="font-semibold">
-            ASN / BGP 拓扑
+            ASN / BGP 網路結構圖
           </div>
           <div class="text-xs text-muted-foreground">
-            按 IP ASN / Org 聚合，模拟 bgp.tools 这类站点的 ASN → 节点关系。
+            依 IP ASN / Org 彙整，模擬 bgp.tools 這類網站的 ASN 與主機對應關係。
           </div>
         </div>
       </template>
@@ -374,7 +374,7 @@ function getNodeMetaLine(item: TopologyNodeView): string {
               Internet / BGP
             </div>
             <div class="text-xs text-muted-foreground">
-              公网路由入口
+              外部網路存取點
             </div>
           </div>
           <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -418,15 +418,15 @@ function getNodeMetaLine(item: TopologyNodeView): string {
       <template #header>
         <div>
           <div class="font-semibold">
-            标签上游拓扑
+            自訂上游架構圖
           </div>
           <div class="text-xs text-muted-foreground">
-            在节点标签里写 <span class="font-mono">upstream:节点名</span> / <span class="font-mono">上游:节点名</span> 后自动连线。
+            在伺服器標籤中填入 <span class="font-mono">upstream:伺服器名稱</span> / <span class="font-mono">上游:伺服器名稱</span> 即可自動建立連線。
           </div>
         </div>
       </template>
       <div v-if="tagEdges.length === 0" class="rounded-lg bg-slate-500/5 p-4 text-sm text-muted-foreground">
-        还没有解析到 upstream 标签；未配置时会把所有节点视为根节点。
+        目前尚未解析到任何上游標籤；若未設定，系統將預設把所有主機視為獨立節點。
       </div>
       <div class="grid gap-4 lg:grid-cols-2">
         <div v-for="item in rootTagNodes" :key="item.node.uuid" class="rounded-xl border border-border/60 bg-background/55 p-3">
@@ -441,7 +441,7 @@ function getNodeMetaLine(item: TopologyNodeView): string {
               </div>
             </div>
             <Badge variant="outline" class="rounded-md text-[11px]">
-              根节点
+              獨立節點
             </Badge>
           </div>
           <div v-if="downstreamByUuid.get(item.node.uuid)?.length" class="mt-3 border-l border-border/70 pl-3">
@@ -484,7 +484,7 @@ function getNodeMetaLine(item: TopologyNodeView): string {
       </CardX>
       <CardX v-if="rootCauseGroups.length === 0" class="border-none bg-background/50">
         <div class="py-8 text-center text-sm text-muted-foreground">
-          当前没有离线节点，暂未形成根因分组。
+          目前沒有離線節點，因此尚未產生問題分類。
         </div>
       </CardX>
     </div>

@@ -27,12 +27,12 @@ export interface CpuBenchmarkRating {
 }
 
 const CPU_TIER_DETAILS: Record<CpuBenchmarkTier, Omit<CpuBenchmarkRating, 'tier'>> = {
-  'S': { label: '顶级', description: '近代旗舰或高密度计算平台' },
-  'A': { label: '高性能', description: '近代高性能服务器或桌面平台' },
-  'B': { label: '主流', description: '仍具实用价值的主流平台' },
-  'C': { label: '较旧平台', description: '较早代际或偏低功耗平台' },
-  'D': { label: '入门/老旧', description: '入门、低功耗或老旧平台' },
-  '?': { label: '未收录', description: '型号不足以完成本地近似分级' },
+  'S': { label: '旗艦', description: '近期旗艦或高密度運算架構' },
+  'A': { label: '高效能', description: '近期高效能伺服器或桌機架構' },
+  'B': { label: '主流', description: '具備穩定效能的主流架構' },
+  'C': { label: '次世代', description: '較早世代或省電取向架構' },
+  'D': { label: '入門/老舊', description: '入門款、低功耗或年代較久的架構' },
+  '?': { label: '未收錄', description: '型號資訊不足，無法完成本機效能評等' },
 }
 
 function rating(tier: CpuBenchmarkTier): CpuBenchmarkRating {
@@ -44,21 +44,21 @@ function contextualizeRating(name: string, result: CpuBenchmarkRating): CpuBench
     return result
 
   const tierIndex = { S: 0, A: 1, B: 2, C: 3, D: 4 }[result.tier]
-  const serverLabels = ['旗舰服务器级', '高端服务器级', '中端服务器级', '入门服务器级', '老旧服务器级']
-  const consumerLabels = ['旗舰消费级', '高端消费级', '中端消费级', '入门消费级', '老旧消费级']
-  const cloudLabels = ['旗舰云计算级', '高端云计算级', '云原生 ARM 级', '入门 ARM 级', '老旧 ARM 级']
+  const serverLabels = ['旗艦主機級', '高階主機級', '中階主機級', '入門主機級', '早期主機級']
+  const consumerLabels = ['旗艦消費級', '高階消費級', '中階消費級', '入門消費級', '早期消費級']
+  const cloudLabels = ['旗艦雲端級', '高階雲端級', '雲端原生 ARM', '入門 ARM', '早期 ARM']
 
   if (VIRTUAL_CPU_PATTERN.test(name))
-    return { ...result, label: '虚拟化通用' }
+    return { ...result, label: '通用虛擬機' }
   if (LOW_POWER_CPU_PATTERN.test(name))
-    return { ...result, label: '入门低功耗级' }
+    return { ...result, label: '入門省電級' }
   if (SERVER_CPU_PATTERN.test(name))
     return { ...result, label: serverLabels[tierIndex] ?? result.label }
   if (CLOUD_ARM_CPU_PATTERN.test(name))
     return { ...result, label: cloudLabels[tierIndex] ?? result.label }
   if (CONSUMER_CPU_PATTERN.test(name))
     return { ...result, label: consumerLabels[tierIndex] ?? result.label }
-  return { ...result, label: '通用' }
+  return { ...result, label: '一般規格' }
 }
 
 function digitsFromModel(model: string): string {

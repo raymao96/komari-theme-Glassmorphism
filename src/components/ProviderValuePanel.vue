@@ -61,7 +61,7 @@ function shouldExcludeNode(node: NodeData): boolean {
 }
 
 function getProviderName(node: NodeData): string {
-  return getNodeProviderMetadata(node)?.provider?.displayName || '未知厂商'
+  return getNodeProviderMetadata(node)?.provider?.displayName || '不明廠商'
 }
 
 function getTrafficComparableBytes(node: NodeData): number {
@@ -78,9 +78,9 @@ function getEffectiveCpuCores(node: NodeData): { cores: number, label: string, l
   const logicalCores = getValidCoreCount(node.cpu_cores)
 
   if (physicalCores > 0)
-    return { cores: physicalCores, label: '物理核', logicalCores }
+    return { cores: physicalCores, label: '實體核心', logicalCores }
 
-  return { cores: logicalCores, label: logicalCores > 0 ? '逻辑核' : '核', logicalCores }
+  return { cores: logicalCores, label: logicalCores > 0 ? '邏輯核心' : '核', logicalCores }
 }
 
 function formatMoneyCNY(amountCNY: number): string {
@@ -104,8 +104,8 @@ function formatBytes(bytes: number): string {
 function formatRankValue(row: NodeValueRow, key: SortKey): string {
   switch (key) {
     case 'monthlyCostCNY': return formatMoneyCNY(row.monthlyCostCNY)
-    case 'costPerMemoryGb': return `${formatCost(row.costPerMemoryGb)} / GB 内存`
-    case 'costPerTrafficGb': return `${formatCost(row.costPerTrafficGb)} / GB 流量`
+    case 'costPerMemoryGb': return `${formatCost(row.costPerMemoryGb)} / GB RAM`
+    case 'costPerTrafficGb': return `${formatCost(row.costPerTrafficGb)} / GB 傳輸量`
     case 'costPerCore': return `${formatCost(row.costPerCore)} / 核`
     case 'provider': return row.provider
     case 'name':
@@ -192,35 +192,35 @@ function sortMark(key: SortKey): string {
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <CardX size="small" class="border-none bg-background/50">
         <div class="text-xs text-muted-foreground">
-          参与对比机器
+          評比主機數
         </div>
         <div class="mt-1 text-2xl font-bold">
           {{ totalComparableNodes }}
         </div>
         <div class="mt-1 text-[11px] text-muted-foreground">
-          已排除免费 / 白嫖中节点
+          已排除免費伺服器
         </div>
       </CardX>
       <CardX size="small" class="border-none bg-background/50">
         <div class="text-xs text-muted-foreground">
-          服务商 / 网络
+          服務商 / 網路
         </div>
         <div class="mt-1 text-2xl font-bold">
           {{ providerCount }}
         </div>
         <div class="mt-1 text-[11px] text-muted-foreground">
-          表格按每台机器单独排行
+          列表依各主機獨立排列
         </div>
       </CardX>
       <CardX size="small" class="border-none bg-background/50 sm:col-span-2 lg:col-span-1">
         <div class="text-xs text-muted-foreground">
-          月成本估算
+          每月預估成本
         </div>
         <div class="mt-1 text-2xl font-bold">
           {{ formatMoneyCNY(totalMonthlyCost) }}
         </div>
         <div class="mt-1 text-[11px] text-muted-foreground">
-          使用现有 financeHelper 汇率缓存
+          採用 financeHelper 暫存匯率計算
         </div>
       </CardX>
     </div>
@@ -238,7 +238,7 @@ function sortMark(key: SortKey): string {
             </div>
           </div>
           <Badge v-if="row.trafficBytes <= 0" variant="outline" class="rounded-md text-[11px] text-orange-500 border-orange-500/30">
-            无流量配额
+            無傳輸量額度
           </Badge>
         </div>
       </CardX>
@@ -248,10 +248,10 @@ function sortMark(key: SortKey): string {
       <template #header>
         <div>
           <div class="font-semibold">
-            单机性价比排行
+            CP 值排名
           </div>
           <div class="text-xs text-muted-foreground">
-            每台机器单独计算；指标越低越划算，流量只统计有明确配额的节点。
+            每台主機獨立計算：數值越低越划算，傳輸量僅統計具備明確額度的節點。
           </div>
         </div>
       </template>
@@ -259,28 +259,28 @@ function sortMark(key: SortKey): string {
         <thead class="text-xs text-muted-foreground">
           <tr class="border-b border-border/60">
             <th class="cursor-pointer px-2 py-2 font-medium" @click="setSort('name')">
-              机器{{ sortMark('name') }}
+              伺服器{{ sortMark('name') }}
             </th>
             <th class="cursor-pointer px-2 py-2 font-medium" @click="setSort('provider')">
-              服务商{{ sortMark('provider') }}
+              服務商{{ sortMark('provider') }}
             </th>
             <th class="px-2 py-2 font-medium">
               CPU
             </th>
             <th class="cursor-pointer px-2 py-2 font-medium" @click="setSort('monthlyCostCNY')">
-              月成本{{ sortMark('monthlyCostCNY') }}
+              每月成本{{ sortMark('monthlyCostCNY') }}
             </th>
             <th class="cursor-pointer px-2 py-2 font-medium" @click="setSort('costPerCore')">
-              每核月成本{{ sortMark('costPerCore') }}
+              單核成本{{ sortMark('costPerCore') }}
             </th>
             <th class="cursor-pointer px-2 py-2 font-medium" @click="setSort('costPerMemoryGb')">
-              每 GB 内存{{ sortMark('costPerMemoryGb') }}
+              每 GB RAM{{ sortMark('costPerMemoryGb') }}
             </th>
             <th class="cursor-pointer px-2 py-2 font-medium" @click="setSort('costPerTrafficGb')">
-              每 GB 流量{{ sortMark('costPerTrafficGb') }}
+              每 GB 傳輸量{{ sortMark('costPerTrafficGb') }}
             </th>
             <th class="px-2 py-2 font-medium">
-              资源
+              規格概述
             </th>
           </tr>
         </thead>
@@ -292,7 +292,7 @@ function sortMark(key: SortKey): string {
               </div>
               <div class="mt-1 flex flex-wrap gap-1">
                 <Badge v-if="row.trafficBytes <= 0" variant="outline" class="rounded-md text-[11px] text-orange-500 border-orange-500/30">
-                  无流量配额
+                  無傳輸量額度
                 </Badge>
               </div>
             </td>
@@ -304,7 +304,7 @@ function sortMark(key: SortKey): string {
                 {{ row.cpuCores }} {{ row.cpuCoreLabel }}
               </div>
               <div v-if="row.logicalCpuCores > 0 && row.logicalCpuCores !== row.cpuCores" class="text-[11px]">
-                {{ row.logicalCpuCores }} 逻辑核
+                {{ row.logicalCpuCores }} 邏輯核心
               </div>
               <div class="max-w-[15rem] truncate" :title="row.cpuName">
                 {{ row.cpuName }}
@@ -323,14 +323,14 @@ function sortMark(key: SortKey): string {
               {{ formatCost(row.costPerTrafficGb) }}
             </td>
             <td class="px-2 py-3 text-xs text-muted-foreground">
-              <div>{{ row.cpuCores }} {{ row.cpuCoreLabel }} · {{ formatBytes(row.memoryBytes) }} 内存</div>
-              <div>流量配额 {{ row.trafficBytes > 0 ? formatBytes(row.trafficBytes) : '未统计' }}</div>
+              <div>{{ row.cpuCores }} {{ row.cpuCoreLabel }} · {{ formatBytes(row.memoryBytes) }} RAM</div>
+              <div>傳輸量上限 {{ row.trafficBytes > 0 ? formatBytes(row.trafficBytes) : '未統計' }}</div>
             </td>
           </tr>
         </tbody>
       </table>
       <div v-if="sortedRows.length === 0" class="py-10 text-center text-sm text-muted-foreground">
-        暂无可对比的付费节点。
+        暫無可評比的付費伺服器。
       </div>
     </CardX>
   </div>

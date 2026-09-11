@@ -330,13 +330,13 @@ function getDetailMetricCard(key: DetailMetricCardKey): MetricCard {
 
   switch (key) {
     case 'nodePrice':
-      return { key, label: '节点价格', value: masked ? '***' : nodePrice.value, unit: masked ? undefined : nodePrice.unit, icon: 'tabler:cash' }
+      return { key, label: '伺服器成本', value: masked ? '***' : nodePrice.value, unit: masked ? undefined : nodePrice.unit, icon: 'tabler:cash' }
     case 'monthlyCost':
-      return { key, label: '月均支出', value: masked ? '***' : monthlyAverageCost.value, unit: masked ? undefined : monthlyAverageCost.unit, icon: 'tabler:receipt-2' }
+      return { key, label: '月均成本', value: masked ? '***' : monthlyAverageCost.value, unit: masked ? undefined : monthlyAverageCost.unit, icon: 'tabler:receipt-2' }
     case 'remainingTime':
-      return { key, label: '剩余时间', value: remainingTime.value, unit: remainingTime.unit, icon: 'tabler:calendar-dollar', valueClass: remainingTimeValueClass.value }
+      return { key, label: '剩餘效期', value: remainingTime.value, unit: remainingTime.unit, icon: 'tabler:calendar-dollar', valueClass: remainingTimeValueClass.value }
     case 'remainingValue':
-      return { key, label: '剩余价值', value: masked ? '***' : remainingValue.value, unit: masked ? undefined : remainingValue.unit, icon: 'tabler:coins' }
+      return { key, label: '剩餘價值', value: masked ? '***' : remainingValue.value, unit: masked ? undefined : remainingValue.unit, icon: 'tabler:coins' }
     case 'cpuUsage':
       return { key, label: 'CPU 使用率', value: (node?.cpu ?? 0).toFixed(1), unit: '%', icon: 'tabler:cpu' }
     case 'gpuUsage': {
@@ -344,43 +344,43 @@ function getDetailMetricCard(key: DetailMetricCardKey): MetricCard {
       return { key, label: 'GPU 使用率', value: hasGpu ? (node?.gpu ?? 0).toFixed(1) : '-', unit: hasGpu ? '%' : undefined, icon: 'tabler:device-desktop-analytics', tooltip: node?.gpu_name?.trim() || undefined }
     }
     case 'memoryUsage':
-      return { key, label: '内存使用率', value: memoryUsage === null ? '-' : memoryUsage.toFixed(1), unit: memoryUsage === null ? undefined : '%', icon: 'icon-park-outline:memory', tooltip: `${formatBytes(node?.ram ?? 0)} / ${formatBytes(node?.mem_total ?? 0)}` }
+      return { key, label: '記憶體使用率', value: memoryUsage === null ? '-' : memoryUsage.toFixed(1), unit: memoryUsage === null ? undefined : '%', icon: 'icon-park-outline:memory', tooltip: `${formatBytes(node?.ram ?? 0)} / ${formatBytes(node?.mem_total ?? 0)}` }
     case 'swapUsage':
-      return { key, label: '交换内存', value: swapUsage === null ? '-' : swapUsage.toFixed(1), unit: swapUsage === null ? undefined : '%', icon: 'icon-park-outline:switch', tooltip: `${formatBytes(node?.swap ?? 0)} / ${formatBytes(node?.swap_total ?? 0)}` }
+      return { key, label: 'Swap', value: swapUsage === null ? '-' : swapUsage.toFixed(1), unit: swapUsage === null ? undefined : '%', icon: 'icon-park-outline:switch', tooltip: `${formatBytes(node?.swap ?? 0)} / ${formatBytes(node?.swap_total ?? 0)}` }
     case 'diskUsage':
-      return { key, label: '硬盘使用率', value: diskUsage === null ? '-' : diskUsage.toFixed(1), unit: diskUsage === null ? undefined : '%', icon: 'tabler:server-2', tooltip: `${formatBytes(node?.disk ?? 0)} / ${formatBytes(node?.disk_total ?? 0)}` }
+      return { key, label: '磁碟使用率', value: diskUsage === null ? '-' : diskUsage.toFixed(1), unit: diskUsage === null ? undefined : '%', icon: 'tabler:server-2', tooltip: `${formatBytes(node?.disk ?? 0)} / ${formatBytes(node?.disk_total ?? 0)}` }
     case 'load':
-      return { key, label: '系统负载', value: (node?.load ?? 0).toFixed(2), unit: '1m', icon: 'tabler:chart-line', tooltip: `5m ${(node?.load5 ?? 0).toFixed(2)} / 15m ${(node?.load15 ?? 0).toFixed(2)}` }
+      return { key, label: '系統負載', value: (node?.load ?? 0).toFixed(2), unit: '1m', icon: 'tabler:chart-line', tooltip: `5m ${(node?.load5 ?? 0).toFixed(2)} / 15m ${(node?.load15 ?? 0).toFixed(2)}` }
     case 'temperature': {
       const temperature = node?.temp ?? 0
-      return { key, label: '系统温度', value: temperature > 0 ? temperature.toFixed(1) : '-', unit: temperature > 0 ? '°C' : undefined, icon: 'tabler:temperature' }
+      return { key, label: '系統溫度', value: temperature > 0 ? temperature.toFixed(1) : '-', unit: temperature > 0 ? '°C' : undefined, icon: 'tabler:temperature' }
     }
     case 'processes':
-      return { key, label: '进程数', value: Math.round(node?.process ?? 0).toLocaleString('zh-CN'), icon: 'tabler:list-numbers' }
+      return { key, label: '處理程序數', value: Math.round(node?.process ?? 0).toLocaleString('zh-CN'), icon: 'tabler:list-numbers' }
     case 'connections':
-      return { key, label: '连接数', value: Math.round((node?.connections ?? 0) + (node?.connections_udp ?? 0)).toLocaleString('zh-CN'), icon: 'tabler:plug-connected', tooltip: `TCP ${node?.connections ?? 0} / UDP ${node?.connections_udp ?? 0}` }
+      return { key, label: '連線數', value: Math.round((node?.connections ?? 0) + (node?.connections_udp ?? 0)).toLocaleString('zh-CN'), icon: 'tabler:plug-connected', tooltip: `TCP ${node?.connections ?? 0} / UDP ${node?.connections_udp ?? 0}` }
     case 'uptime':
-      return { key, label: '运行时间', value: formatUptime(node?.uptime ?? 0), icon: 'tabler:clock-up' }
+      return { key, label: '運作時間', value: formatUptime(node?.uptime ?? 0), icon: 'tabler:clock-up' }
     case 'uploadSpeed': {
       const speed = splitMeasurement(formatBytesPerSecond(node?.net_out ?? 0))
-      return { key, label: '实时上行', value: speed.value, unit: speed.unit, icon: 'tabler:chevrons-up' }
+      return { key, label: '即時上傳', value: speed.value, unit: speed.unit, icon: 'tabler:chevrons-up' }
     }
     case 'downloadSpeed': {
       const speed = splitMeasurement(formatBytesPerSecond(node?.net_in ?? 0))
-      return { key, label: '实时下行', value: speed.value, unit: speed.unit, icon: 'tabler:chevrons-down' }
+      return { key, label: '即時下載', value: speed.value, unit: speed.unit, icon: 'tabler:chevrons-down' }
     }
     case 'totalTraffic': {
       const traffic = splitMeasurement(formatBytes((node?.net_total_up ?? 0) + (node?.net_total_down ?? 0)))
-      return { key, label: '累计流量', value: traffic.value, unit: traffic.unit, icon: 'tabler:arrows-transfer-up-down', tooltip: `↑ ${formatBytes(node?.net_total_up ?? 0)} / ↓ ${formatBytes(node?.net_total_down ?? 0)}` }
+      return { key, label: '總傳輸用量', value: traffic.value, unit: traffic.unit, icon: 'tabler:arrows-transfer-up-down', tooltip: `↑ ${formatBytes(node?.net_total_up ?? 0)} / ↓ ${formatBytes(node?.net_total_down ?? 0)}` }
     }
     case 'trafficQuota':
       return {
         key,
-        label: '流量配额',
+        label: '傳輸量配額',
         value: nodeHasTrafficLimit ? nodeTrafficPercentage.toFixed(1) : '∞',
         unit: nodeHasTrafficLimit ? '%' : undefined,
         icon: 'tabler:gauge',
-        tooltip: nodeHasTrafficLimit ? `${formatBytes(nodeTrafficUsed)} / ${formatBytes(nodeTrafficLimit)}` : '无限流量',
+        tooltip: nodeHasTrafficLimit ? `${formatBytes(nodeTrafficUsed)} / ${formatBytes(nodeTrafficLimit)}` : '無限傳輸量',
       }
     default:
       return { key: 'cpuUsage', label: 'CPU 使用率', value: (node?.cpu ?? 0).toFixed(1), unit: '%', icon: 'tabler:cpu' }
@@ -402,9 +402,9 @@ const hardwareSmallItems = computed<InfoItem[]>(() => {
 
   const physicalCores = node?.cpu_physical_cores
   if (typeof physicalCores === 'number' && physicalCores > 0)
-    items.push({ label: '物理核心', value: `${physicalCores} 核`, icon: 'tabler:cpu' })
+    items.push({ label: '實體核心', value: `${physicalCores} 核心`, icon: 'tabler:cpu' })
 
-  items.push({ label: '虚拟化', value: node?.virtualization ?? '-', icon: 'icon-park-outline:server' })
+  items.push({ label: '虛擬化技術', value: node?.virtualization ?? '-', icon: 'icon-park-outline:server' })
 
   const gpu = node?.gpu_name?.trim()
   if (gpu && gpu.toLowerCase() !== 'none')
@@ -414,16 +414,16 @@ const hardwareSmallItems = computed<InfoItem[]>(() => {
 })
 
 const systemInfo = computed<InfoItem[]>(() => [
-  { label: '操作系统', value: data.value?.os ?? '-', icon: 'icon-park-outline:computer' },
-  { label: '内核版本', value: data.value?.kernel_version ?? '-', icon: 'icon-park-outline:code' },
-  { label: '运行时间', value: formatUptime(data.value?.uptime ?? 0), icon: 'icon-park-outline:timer' },
-  { label: '厂商', value: providerDisplay.value, icon: vpsProvider.value?.primary.icon ?? 'icon-park-outline:server' },
+  { label: '作業系統', value: data.value?.os ?? '-', icon: 'icon-park-outline:computer' },
+  { label: '核心版本', value: data.value?.kernel_version ?? '-', icon: 'icon-park-outline:code' },
+  { label: '運作時間', value: formatUptime(data.value?.uptime ?? 0), icon: 'icon-park-outline:timer' },
+  { label: '服務商', value: providerDisplay.value, icon: vpsProvider.value?.primary.icon ?? 'icon-park-outline:server' },
 ])
 
 const storageInfo = computed<InfoItem[]>(() => [
-  { label: '内存', value: formatBytes(data.value?.mem_total ?? 0), icon: 'icon-park-outline:memory' },
-  { label: '内存交换', value: formatBytes(data.value?.swap_total ?? 0), icon: 'icon-park-outline:switch' },
-  { label: '硬盘', value: formatBytes(data.value?.disk_total ?? 0), icon: 'icon-park-outline:hard-disk' },
+  { label: '記憶體', value: formatBytes(data.value?.mem_total ?? 0), icon: 'icon-park-outline:memory' },
+  { label: 'Swap', value: formatBytes(data.value?.swap_total ?? 0), icon: 'icon-park-outline:switch' },
+  { label: '磁碟', value: formatBytes(data.value?.disk_total ?? 0), icon: 'icon-park-outline:hard-disk' },
 ])
 
 const trafficUsed = computed(() => {
@@ -452,7 +452,7 @@ const trafficUsedPercentage = computed(() => {
 
 const trafficUsageText = computed(() => {
   if (!hasTrafficLimit.value)
-    return '无限流量'
+    return '無限傳輸量'
   return `${formatBytes(trafficUsed.value)} / ${formatBytes(data.value?.traffic_limit ?? 0)}`
 })
 
@@ -477,10 +477,10 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
   <div class="instance-detail space-y-4">
     <div v-if="!data" class="p-4">
       <CardX>
-        <Empty description="节点不存在或已被删除">
+        <Empty description="查無此伺服器或已刪除">
           <template #extra>
             <Button @click="router.push('/')">
-              返回首页
+              回到首頁
             </Button>
           </template>
         </Empty>
@@ -490,7 +490,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
     <template v-else>
       <!-- 顶部导航 -->
       <div class="px-4 flex flex-wrap gap-2 items-center sm:gap-4">
-        <Button variant="ghost" size="icon-sm" class="bg-background/50 hover:bg-background" aria-label="返回首页" @click="router.push('/')">
+        <Button variant="ghost" size="icon-sm" class="bg-background/50 hover:bg-background" aria-label="回到首頁" @click="router.push('/')">
           <Icon icon="tabler:arrow-left" :width="16" :height="16" />
         </Button>
         <div class="min-w-0 text-lg font-bold flex gap-2 items-center">
@@ -498,7 +498,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
           <span class="truncate">{{ data.name }}</span>
         </div>
         <Badge :variant="data.online ? 'default' : 'destructive'" class="text-xs !rounded">
-          {{ data.online ? '在线' : '离线' }}
+          {{ data.online ? '上線' : '離線' }}
         </Badge>
         <!-- 节点自定义标签 -->
         <div v-if="customTags.length" class="flex flex-wrap gap-1">
@@ -514,8 +514,8 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
             variant="ghost" size="icon-sm"
             class="size-7 rounded-sm shadow-none"
             :class="isFavoriteNode && 'text-amber-500'"
-            :aria-label="isFavoriteNode ? '取消收藏当前节点' : '收藏当前节点'"
-            :title="isFavoriteNode ? '取消收藏' : '收藏节点'"
+            :aria-label="isFavoriteNode ? '取消收藏目前伺服器' : '收藏目前伺服器'"
+            :title="isFavoriteNode ? '取消收藏' : '收藏伺服器'"
             @click="toggleCurrentFavorite"
           >
             <Icon :icon="isFavoriteNode ? 'tabler:star-filled' : 'tabler:star'" :width="14" :height="14" />
@@ -523,7 +523,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
           <Button
             variant="ghost" size="icon-sm" class="size-7 rounded-sm shadow-none"
             :disabled="detailNodes.length < 2"
-            aria-label="上一个节点" title="上一个节点"
+            aria-label="上個伺服器" title="上個伺服器"
             @click="navigateDetailNode(-1)"
           >
             <Icon icon="tabler:chevron-left" :width="14" :height="14" />
@@ -531,7 +531,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
           <select
             :value="data.uuid"
             class="h-7 max-w-34 rounded-sm border-0 bg-transparent px-1 text-xs text-foreground outline-none sm:max-w-48"
-            aria-label="切换节点"
+            aria-label="切換伺服器"
             @change="selectDetailNode"
           >
             <option v-for="node in detailNodes" :key="node.uuid" :value="node.uuid">
@@ -541,7 +541,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
           <Button
             variant="ghost" size="icon-sm" class="size-7 rounded-sm shadow-none"
             :disabled="detailNodes.length < 2"
-            aria-label="下一个节点" title="下一个节点"
+            aria-label="下個伺服器" title="下個伺服器"
             @click="navigateDetailNode(1)"
           >
             <Icon icon="tabler:chevron-right" :width="14" :height="14" />
@@ -568,15 +568,15 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
           <TabsList class="w-max h-8 bg-background/50 backdrop-blur-xl rounded-md">
             <TabsTrigger value="overview" class="h-6.5 flex-none shrink-0 gap-1 text-xs border-none data-[state=active]:text-selection shadow-none rounded-sm">
               <Icon icon="tabler:layout-dashboard" :width="12" :height="12" />
-              概览
+              總覽
             </TabsTrigger>
             <TabsTrigger value="load" class="h-6.5 flex-none shrink-0 gap-1 text-xs border-none data-[state=active]:text-selection shadow-none rounded-sm">
               <Icon icon="tabler:activity" :width="12" :height="12" />
-              负载
+              負載
             </TabsTrigger>
             <TabsTrigger value="ping" class="h-6.5 flex-none shrink-0 gap-1 text-xs border-none data-[state=active]:text-selection shadow-none rounded-sm">
               <Icon icon="tabler:timeline" :width="12" :height="12" />
-              延迟
+              延遲
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -607,7 +607,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
       <!-- 硬件信息 -->
       <div v-if="!appStore.nodeDetailSectionTabsEnabled || activeDetailSection === 'overview'" class="px-4 gap-4 grid grid-cols-1 lg:grid-cols-2">
         <CardX
-          title="硬件信息" size="small" content-class="flex-1"
+          title="硬體資訊" size="small" content-class="flex-1"
           class="group h-full bg-background/50 border-none hover:bg-background transition-all rounded-md"
         >
           <div class="flex flex-col gap-3 h-full">
@@ -623,10 +623,10 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
                   target="_blank"
                   rel="noopener noreferrer"
                   class="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-sm bg-slate-500/8 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-slate-500/12 hover:text-foreground"
-                  title="在 PassMark 查看该 CPU 的公开 CPU Mark 跑分与排行"
+                  title="前往 PassMark 查看該 CPU 的公開效能評分與排名"
                 >
                   <Icon icon="tabler:chart-bar" :width="13" :height="13" />
-                  <span class="hidden sm:inline">CPU Mark 排行</span>
+                  <span class="hidden sm:inline">CPU Mark 排名</span>
                   <span class="sm:hidden">CPU Mark</span>
                   <Icon icon="tabler:external-link" :width="11" :height="11" />
                 </a>
@@ -634,7 +634,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
               <span class="text-xs sm:text-sm break-all">{{ data.cpu_name }} ({{ data.cpu_cores }} vCPU)</span>
               <div
                 class="mt-1 flex items-center gap-2"
-                :title="`参考公开天梯与型号代际的本地近似分级，不代表当前 ${data.cpu_cores} vCPU 的实测性能。${cpuBenchmarkRating.description}`"
+                :title="`參考公開天梯榜與型號代際的本地近似分級，不代表當前 ${data.cpu_cores} vCPU 的實際效能。${cpuBenchmarkRating.description}`"
               >
                 <span class="shrink-0 text-xs font-bold" :class="cpuBenchmarkTierTextClass">{{ cpuBenchmarkRating.tier }}</span>
                 <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-500/10">
@@ -665,7 +665,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
         </CardX>
 
         <CardX
-          title="系统信息" size="small" content-class="flex-1"
+          title="系統資訊" size="small" content-class="flex-1"
           class="group h-full bg-background/50 border-none hover:bg-background transition-all rounded-md"
         >
           <div class="gap-3 grid grid-cols-1 sm:grid-cols-2 h-full sm:auto-rows-fr">
@@ -678,7 +678,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
                 <span class="text-xs sm:text-sm">{{ item.label }}</span>
               </div>
               <div class="flex min-w-0 gap-2 items-center">
-                <img v-if="item.label === '操作系统'" :src="getOSImage(data.os)" :alt="getOSName(data.os)" class="size-5 shrink-0">
+                <img v-if="item.label === '作業系統'" :src="getOSImage(data.os)" :alt="getOSName(data.os)" class="size-5 shrink-0">
                 <span class="text-xs sm:text-sm break-words">{{ item.value }}</span>
               </div>
             </div>
@@ -686,7 +686,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
         </CardX>
 
         <CardX
-          title="存储信息" size="small"
+          title="儲存空間資訊" size="small"
           class="group h-full bg-background/50 border-none hover:bg-background transition-all rounded-md"
         >
           <div class="gap-3 grid grid-cols-3">
@@ -704,7 +704,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
         </CardX>
 
         <CardX
-          title="网络信息" size="small"
+          title="網路資訊" size="small"
           class="group h-full bg-background/50 border-none hover:bg-background transition-all rounded-md"
           content-class="pt-0"
         >
@@ -719,7 +719,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
               <div class="relative flex flex-col gap-1.5">
                 <div class="flex gap-1 items-center text-muted-foreground">
                   <Icon icon="icon-park-outline:transfer-data" :width="14" :height="14" />
-                  <span class="text-xs sm:text-sm">总流量</span>
+                  <span class="text-xs sm:text-sm">總傳輸量</span>
                   <Badge
                     v-for="proto in ipSupport" :key="proto" variant="outline"
                     class="!text-[10px] rounded text-emerald-600 border-emerald-600/25 px-1 py-0 leading-none"
@@ -733,7 +733,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
                 </div>
                 <span class="text-xs sm:text-sm break-all">{{ trafficUsageText }}</span>
                 <span v-if="hasPeak" class="text-[10px] text-muted-foreground/80 flex items-center gap-2 leading-none">
-                  <span>近一天峰值</span>
+                  <span>近一天尖峰</span>
                   <span class="text-green-600 flex items-center gap-0.5">
                     <Icon icon="tabler:chevron-up" width="10" height="10" />{{ formatBytesPerSecond(peakNetOut) }}
                   </span>
@@ -746,7 +746,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
             <div class="min-w-0 flex flex-col gap-1 rounded-sm bg-slate-500/5 p-2">
               <div class="flex gap-1 items-center text-muted-foreground">
                 <Icon icon="icon-park-outline:dashboard-one" :width="14" :height="14" />
-                <span class="text-xs sm:text-sm">网络速率</span>
+                <span class="text-xs sm:text-sm">網路速率</span>
               </div>
               <span class="text-xs sm:text-sm break-all flex flex-row flex-wrap items-center gap-1">
                 <Icon icon="tabler:chevron-up" width="12" height="12" />

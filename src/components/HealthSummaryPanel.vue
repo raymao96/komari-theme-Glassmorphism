@@ -73,9 +73,9 @@ const rangeOptions = computed<HealthRangeOption[]>(() => {
   const allHours = Math.max(1, preserveHours)
   const options: HealthRangeOption[] = [
     { key: 'day', label: '日', hours: 24 },
-    { key: 'week', label: '周', hours: 168 },
+    { key: 'week', label: '週', hours: 168 },
     { key: 'month', label: '月', hours: 720 },
-    { key: 'all', label: '有史以来', hours: allHours },
+    { key: 'all', label: '不限時間', hours: allHours },
   ]
   return options.filter(option => option.key === 'all' || allHours >= option.hours)
 })
@@ -265,7 +265,7 @@ function buildNodeSummary(node: NodeData, recordsByClient: Map<string, StatusRec
 async function generateSummary(): Promise<void> {
   const granted = await appStore.requireLoginPermission('healthSummary', { force: true })
   if (!granted) {
-    error.value = '登录状态已过期，请重新登录后生成健康摘要。'
+    error.value = '登入逾時，請重新登入後再試。'
     window.$message?.warning(error.value)
     return
   }
@@ -281,7 +281,7 @@ async function generateSummary(): Promise<void> {
   summaries.value = props.nodes.map(node => buildNodeSummary(node, realtimeRecordsByClient, new Map<string, PingRecordLike[]>()))
   loading.value = false
   historyLoading.value = true
-  historyNote.value = '已先用实时数据生成摘要，历史趋势后台补全中。'
+  historyNote.value = '正在逐步匯總過往記錄以便完善摘要內容。'
 
   try {
     const hours = selectedHours.value
@@ -295,13 +295,13 @@ async function generateSummary(): Promise<void> {
 
     summaries.value = props.nodes.map(node => buildNodeSummary(node, recordsByClient, pingRecordsByClient))
     historyNote.value = recordsByClient === realtimeRecordsByClient
-      ? '历史负载拉取失败，当前结果使用实时数据兜底。'
-      : `历史样本最多读取 ${HEALTH_LOAD_MAX_COUNT.toLocaleString('zh-CN')} 条，保证生成速度。`
+      ? '無法取得過往負載記錄，目前摘要內容以當下即時數據為基礎。'
+      : `為了保證摘要品質，過往資料最多讀取 ${HEALTH_LOAD_MAX_COUNT.toLocaleString('zh-CN')} 筆。`
   }
   catch (err) {
     if (requestId !== summaryRequestId)
       return
-    error.value = err instanceof Error ? err.message : '生成健康摘要失败'
+    error.value = err instanceof Error ? err.message : '無法產生系統健檢摘要'
   }
   finally {
     if (requestId === summaryRequestId) {
@@ -332,7 +332,7 @@ function thresholdRisk(value: number, threshold: number, weight: number): number
 
 const riskRankNodes = computed<NodeRiskSummary[]>(() => summaries.value.map((node) => {
   if (!node.online)
-    return { node, score: 100, reasons: ['节点离线'] }
+    return { node, score: 100, reasons: ['伺服器已離線'] }
 
   const reasons: string[] = []
   let score = 0
@@ -347,29 +347,29 @@ const riskRankNodes = computed<NodeRiskSummary[]>(() => summaries.value.map((nod
   const memoryRisk = thresholdRisk(node.memoryPeak, loadThreshold, 20)
   if (memoryRisk > 0) {
     score += memoryRisk
-    reasons.push(`内存 ${node.memoryPeak.toFixed(0)}%`)
+    reasons.push(`RAM ${node.memoryPeak.toFixed(0)}%`)
   }
   const diskRisk = thresholdRisk(node.diskUsagePercentage, loadThreshold, 15)
   if (diskRisk > 0) {
     score += diskRisk
-    reasons.push(`磁盘 ${node.diskUsagePercentage.toFixed(0)}%`)
+    reasons.push(`磁碟 ${node.diskUsagePercentage.toFixed(0)}%`)
   }
   const trafficRisk = thresholdRisk(node.trafficUsedPercentage, trafficThreshold, 15)
   if (node.trafficLimitBytes > 0 && trafficRisk > 0) {
     score += trafficRisk
-    reasons.push(`流量 ${node.trafficUsedPercentage.toFixed(0)}%`)
+    reasons.push(`傳輸量 ${node.trafficUsedPercentage.toFixed(0)}%`)
   }
   if (node.avgLoss >= 5) {
     score += Math.min(15, node.avgLoss * 0.75)
-    reasons.push(`丢包 ${node.avgLoss.toFixed(1)}%`)
+    reasons.push(`掉包 ${node.avgLoss.toFixed(1)}%`)
   }
   if (node.avgLatency >= 200) {
     score += Math.min(10, node.avgLatency / 100)
-    reasons.push(`延迟 ${Math.round(node.avgLatency)}ms`)
+    reasons.push(`延遲 ${Math.round(node.avgLatency)}ms`)
   }
   if (node.diskPredictionDays !== null && node.diskPredictionDays <= appStore.diskPredictionThresholdDays) {
     score += 10
-    reasons.push(`磁盘约 ${Math.max(0, Math.ceil(node.diskPredictionDays))} 天后满`)
+    reasons.push(`磁碟預計 ${Math.max(0, Math.ceil(node.diskPredictionDays))} 天後耗盡`)
   }
 
   return { node, score: Math.min(100, Math.round(score)), reasons }
@@ -385,20 +385,20 @@ function riskScoreClass(score: number): string {
 
 const summaryLines = computed(() => {
   if (!generatedAt.value)
-    return ['选择时间范围后点击生成摘要，不会在首页自动重算。']
+    return ['請選取時間範圍並按一下產生摘要（此為當下快照，不會自動更新）。']
 
   const lines: string[] = []
-  lines.push(`当前范围：${rangeOptions.value.find(option => option.key === selectedRange.value)?.label ?? '-'}，节点 ${props.nodes.length} 台，离线 ${offlineNodes.value.length} 台。`)
+  lines.push(`目前範圍：${rangeOptions.value.find(option => option.key === selectedRange.value)?.label ?? '-'}，伺服器 ${props.nodes.length} 台，離線 ${offlineNodes.value.length} 台。`)
   if (offlineNodes.value.length)
-    lines.push(`离线节点：${offlineNodes.value.slice(0, 6).map(node => node.name).join('、')}${offlineNodes.value.length > 6 ? '…' : ''}`)
+    lines.push(`目前離線：${offlineNodes.value.slice(0, 6).map(node => node.name).join('、')}${offlineNodes.value.length > 6 ? '…' : ''}`)
   if (diskFullSoon.value.length)
-    lines.push(`${diskFullSoon.value[0]?.name} 磁盘风险最高，预计 ${Math.ceil(diskFullSoon.value[0]?.diskPredictionDays ?? 0)} 天后满。`)
+    lines.push(`${diskFullSoon.value[0]?.name} 磁碟風險最高，預計磁碟空間於 ${Math.ceil(diskFullSoon.value[0]?.diskPredictionDays ?? 0)} 天後耗盡。`)
   if (trafficWarnings.value.length)
     lines.push(`${trafficWarnings.value[0]?.name} 流量使用率最高：${trafficWarnings.value[0]?.trafficUsedPercentage.toFixed(1)}%。`)
   if (pingWarnings.value.length)
-    lines.push(`${pingWarnings.value[0]?.name} 网络质量异常：平均丢包 ${pingWarnings.value[0]?.avgLoss.toFixed(1)}%，平均延迟 ${Math.round(pingWarnings.value[0]?.avgLatency ?? 0)}ms。`)
+    lines.push(`${pingWarnings.value[0]?.name} 網路品質異常：平均掉包 ${pingWarnings.value[0]?.avgLoss.toFixed(1)}%，平均延遲 ${Math.round(pingWarnings.value[0]?.avgLatency ?? 0)}ms。`)
   if (lines.length === 1)
-    lines.push('未发现明显 CPU、内存、磁盘、流量或 Ping 异常。')
+    lines.push('未發現明顯 CPU、記憶體、磁碟、傳輸量或 Ping 異常。')
   return lines
 })
 </script>
@@ -419,7 +419,7 @@ const summaryLines = computed(() => {
       </Button>
       <Button size="sm" class="ml-auto" :disabled="loading || historyLoading" @click="generateSummary">
         <Icon :icon="historyLoading ? 'tabler:loader-2' : 'tabler:sparkles'" width="14" height="14" :class="historyLoading && 'animate-spin'" />
-        {{ historyLoading ? '补全历史中' : '生成摘要' }}
+        {{ historyLoading ? '正在載入過往資料' : '產生摘要' }}
       </Button>
     </div>
 
@@ -429,10 +429,10 @@ const summaryLines = computed(() => {
           <template #header>
             <div>
               <div class="font-semibold">
-                周期健康摘要
+                系統健檢摘要
               </div>
               <div class="text-xs text-muted-foreground">
-                {{ generatedAt ? `生成于 ${generatedAt}` : '按需生成，避免首页自动拉取全部历史。' }}
+                {{ generatedAt ? `產生於 ${generatedAt}` : '請依需求設限健檢摘要範圍，如未設限則會自動匯總所有伺服器資料。' }}
               </div>
               <div v-if="historyNote" class="mt-1 text-[11px] text-muted-foreground">
                 {{ historyNote }}
@@ -451,7 +451,7 @@ const summaryLines = computed(() => {
         </CardX>
 
         <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <CardX title="综合异常排行" size="small" class="border-none bg-background/50 md:col-span-2 xl:col-span-3">
+          <CardX title="綜合異常排名" size="small" class="border-none bg-background/50 md:col-span-2 xl:col-span-3">
             <div v-if="riskRankNodes.length" class="grid gap-1.5 md:grid-cols-2 xl:grid-cols-3">
               <div v-for="(item, index) in riskRankNodes" :key="item.node.uuid" class="flex min-w-0 items-center gap-2 rounded-md bg-slate-500/5 px-2.5 py-2">
                 <span class="w-5 shrink-0 text-center text-xs font-semibold tabular-nums text-muted-foreground">{{ index + 1 }}</span>
@@ -467,11 +467,11 @@ const summaryLines = computed(() => {
               </div>
             </div>
             <div v-else class="text-sm text-muted-foreground">
-              {{ generatedAt ? '当前阈值下未发现明显异常' : '生成后显示综合异常排行' }}
+              {{ generatedAt ? '在目前門檻值範圍內無明顯異常' : '產生健檢摘要後顯示綜合異常排名' }}
             </div>
           </CardX>
 
-          <CardX title="离线 / 可用性" size="small" class="border-none bg-background/50">
+          <CardX title="已離線" size="small" class="border-none bg-background/50">
             <div class="text-2xl font-bold text-destructive">
               {{ offlineNodes.length }}
             </div>
@@ -482,7 +482,7 @@ const summaryLines = computed(() => {
             </div>
           </CardX>
 
-          <CardX title="CPU 峰值排行" size="small" class="border-none bg-background/50">
+          <CardX title="CPU 尖峰值排名" size="small" class="border-none bg-background/50">
             <div v-if="cpuRankNodes.length" class="space-y-1 text-sm">
               <div v-for="item in cpuRankNodes" :key="item.uuid" class="flex justify-between gap-2">
                 <span class="truncate">{{ item.name }}</span>
@@ -490,11 +490,11 @@ const summaryLines = computed(() => {
               </div>
             </div>
             <div v-else class="text-sm text-muted-foreground">
-              生成后显示 CPU 峰值排行
+              產生健檢摘要後顯示 CPU 尖峰值排名
             </div>
           </CardX>
 
-          <CardX title="内存峰值排行" size="small" class="border-none bg-background/50">
+          <CardX title="RAM 尖峰值排名" size="small" class="border-none bg-background/50">
             <div v-if="memoryRankNodes.length" class="space-y-1 text-sm">
               <div v-for="item in memoryRankNodes" :key="item.uuid" class="flex justify-between gap-2">
                 <span class="truncate">{{ item.name }}</span>
@@ -502,11 +502,11 @@ const summaryLines = computed(() => {
               </div>
             </div>
             <div v-else class="text-sm text-muted-foreground">
-              生成后显示内存峰值排行
+              產生健檢摘要後顯示RAM 尖峰值排名
             </div>
           </CardX>
 
-          <CardX :title="diskRankMode === 'growth' ? '磁盘增长最快' : '磁盘占用最高'" size="small" class="border-none bg-background/50">
+          <CardX :title="diskRankMode === 'growth' ? '磁碟消耗最快' : '磁碟用量最高'" size="small" class="border-none bg-background/50">
             <div v-if="diskRankNodes.length" class="space-y-1 text-sm">
               <div v-for="item in diskRankNodes" :key="item.uuid" class="flex justify-between gap-2">
                 <span class="truncate">{{ item.name }}</span>
@@ -516,11 +516,11 @@ const summaryLines = computed(() => {
               </div>
             </div>
             <div v-else class="text-sm text-muted-foreground">
-              生成后显示磁盘排行
+              產生健檢摘要後顯示磁碟用量排名
             </div>
           </CardX>
 
-          <CardX title="流量预警" size="small" class="border-none bg-background/50">
+          <CardX title="傳輸量預警" size="small" class="border-none bg-background/50">
             <div v-if="trafficWarnings.length" class="space-y-1 text-sm">
               <div v-for="item in trafficWarnings.slice(0, HEALTH_LIST_LIMIT)" :key="item.uuid" class="flex justify-between gap-2">
                 <span class="truncate">{{ item.name }}</span>
@@ -528,11 +528,11 @@ const summaryLines = computed(() => {
               </div>
             </div>
             <div v-else class="text-sm text-muted-foreground">
-              暂无流量预警
+              暫無傳輸量預警
             </div>
           </CardX>
 
-          <CardX title="流量消耗速度" size="small" class="border-none bg-background/50">
+          <CardX title="即時速率排名" size="small" class="border-none bg-background/50">
             <div v-if="fastestTrafficBurn.length" class="space-y-1 text-sm">
               <div v-for="item in fastestTrafficBurn" :key="item.node.uuid" class="flex justify-between gap-2">
                 <span class="truncate">{{ item.node.name }}</span>
@@ -540,7 +540,7 @@ const summaryLines = computed(() => {
               </div>
             </div>
             <div v-else class="text-sm text-muted-foreground">
-              暂无配额节点
+              暫無可參與排名的伺服器
             </div>
           </CardX>
         </div>

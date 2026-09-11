@@ -100,14 +100,14 @@ export function useNodePingDisplay(
 
   function buildEmptyPingBars(metric: NodePingMetric): NodePingBar[] {
     const tooltip = pingStats.loading.value
-      ? '加载中'
+      ? '正在載入'
       : pingStats.error.value
-        ? '加载失败'
+        ? '無法載入'
         : !pingStatsEnabled.value
-            ? '未启用记录'
+            ? '未啟用檢測'
             : metric === 'latency'
-              ? '无采样数据'
-              : '无采样数据'
+              ? '無取樣資料'
+              : '無取樣資料'
 
     return Array.from({ length: EMPTY_PING_BAR_COUNT }, (_, index) => ({
       key: `${metric}-empty-${index}`,
@@ -125,7 +125,7 @@ export function useNodePingDisplay(
     if (pingStats.hasData.value)
       return `${Math.round(pingStats.avgLatency.value)} ms`
     if (pingStats.loading.value)
-      return options.loadingDisplayText ?? '加载中'
+      return options.loadingDisplayText ?? '正在載入'
     return options.emptyDisplayText ?? '-'
   })
 
@@ -133,7 +133,7 @@ export function useNodePingDisplay(
     if (pingStats.hasData.value)
       return `${pingStats.avgLoss.value.toFixed(1)}%`
     if (pingStats.loading.value)
-      return options.loadingDisplayText ?? '加载中'
+      return options.loadingDisplayText ?? '正在載入'
     return options.emptyDisplayText ?? '-'
   })
 
@@ -143,7 +143,7 @@ export function useNodePingDisplay(
         return options.loadingPanelTooltipText?.latency ?? ''
       return options.emptyPanelTooltipText?.latency ?? ''
     }
-    return `平均延迟 ${Math.round(pingStats.avgLatency.value)} ms`
+    return `平均延遲 ${Math.round(pingStats.avgLatency.value)} ms`
   })
 
   const lossPanelTooltip = computed(() => {
@@ -154,9 +154,9 @@ export function useNodePingDisplay(
     }
 
     const volatility = pingStats.avgVolatility.value > 0
-      ? `，平均波动 ${pingStats.avgVolatility.value.toFixed(2)}`
+      ? `，平均波動 ${pingStats.avgVolatility.value.toFixed(2)}`
       : ''
-    return `平均丢包 ${pingStats.avgLoss.value.toFixed(1)}%${volatility}`
+    return `平均掉包 ${pingStats.avgLoss.value.toFixed(1)}%${volatility}`
   })
 
   return {

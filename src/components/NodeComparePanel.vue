@@ -58,28 +58,28 @@ function clampPercentage(value: number): number {
 
 const compareMetrics = computed<CompareMetric[]>(() => {
   const metrics: CompareMetric[] = [
-    { key: 'status', label: '状态', value: node => node.online ? '在线' : '离线' },
-    { key: 'cpuModel', label: 'CPU 型号', value: node => node.cpu_name || '-' },
-    { key: 'cpuCores', label: 'vCPU', value: node => `${node.cpu_cores || 0} 核` },
+    { key: 'status', label: '狀態', value: node => node.online ? '上線' : '離線' },
+    { key: 'cpuModel', label: 'CPU 型號', value: node => node.cpu_name || '-' },
+    { key: 'cpuCores', label: 'vCPU', value: node => `${node.cpu_cores || 0} 核心` },
     { key: 'cpu', label: 'CPU 使用率', value: node => `${(node.cpu || 0).toFixed(1)}%`, percentage: node => node.cpu || 0 },
-    { key: 'load', label: '系统负载', value: node => `${(node.load || 0).toFixed(2)} / ${(node.load5 || 0).toFixed(2)} / ${(node.load15 || 0).toFixed(2)}` },
-    { key: 'memory', label: '内存', value: node => `${formatBytes(node.ram || 0)} / ${formatBytes(node.mem_total || 0)}`, percentage: getMemoryPercentage },
-    { key: 'disk', label: '磁盘', value: node => `${formatBytes(node.disk || 0)} / ${formatBytes(node.disk_total || 0)}`, percentage: getDiskPercentage },
-    { key: 'network', label: '实时网络', value: node => `↑ ${formatSpeed(node.net_out || 0)}  ↓ ${formatSpeed(node.net_in || 0)}` },
-    { key: 'traffic', label: '累计流量', value: node => `${formatBytes(node.net_total_up || 0)} ↑ / ${formatBytes(node.net_total_down || 0)} ↓` },
+    { key: 'load', label: '系統負載', value: node => `${(node.load || 0).toFixed(2)} / ${(node.load5 || 0).toFixed(2)} / ${(node.load15 || 0).toFixed(2)}` },
+    { key: 'memory', label: 'RAM', value: node => `${formatBytes(node.ram || 0)} / ${formatBytes(node.mem_total || 0)}`, percentage: getMemoryPercentage },
+    { key: 'disk', label: '磁碟', value: node => `${formatBytes(node.disk || 0)} / ${formatBytes(node.disk_total || 0)}`, percentage: getDiskPercentage },
+    { key: 'network', label: '網路動態', value: node => `↑ ${formatSpeed(node.net_out || 0)}  ↓ ${formatSpeed(node.net_in || 0)}` },
+    { key: 'traffic', label: '傳輸量統計', value: node => `${formatBytes(node.net_total_up || 0)} ↑ / ${formatBytes(node.net_total_down || 0)} ↓` },
     {
       key: 'trafficQuota',
-      label: '流量配额',
-      value: node => hasTrafficLimit(node) ? `${formatBytes(getTrafficUsed(node))} / ${formatBytes(node.traffic_limit)}` : '无限',
+      label: '傳輸量上限',
+      value: node => hasTrafficLimit(node) ? `${formatBytes(getTrafficUsed(node))} / ${formatBytes(node.traffic_limit)}` : '不限',
       percentage: node => hasTrafficLimit(node) ? getTrafficUsedPercentage(node) : null,
     },
-    { key: 'uptime', label: '运行时间', value: node => formatUptimeWithFormat(node.uptime || 0, 'day') },
+    { key: 'uptime', label: '運作時間', value: node => formatUptimeWithFormat(node.uptime || 0, 'day') },
   ]
 
   if (appStore.privateFeaturesAllowed || !appStore.hidePriceWhenLoggedOut) {
     metrics.push({
       key: 'price',
-      label: '价格',
+      label: '成本',
       value: node => node.price > 0 || isFreePrice(node.price)
         ? formatPriceWithCycle(node.price, node.billing_cycle, node.currency, appStore.lang)
         : '-',
@@ -98,7 +98,7 @@ function toggleNode(uuid: string): void {
     return
   }
   if (normalizedSelectedIds.value.length >= MAX_COMPARE_NODES) {
-    window.$message?.warning(`最多同时对比 ${MAX_COMPARE_NODES} 台节点。`)
+    window.$message?.warning(`最多同時評比 ${MAX_COMPARE_NODES} 台伺服器。`)
     return
   }
   selectedIds.value = [...normalizedSelectedIds.value, uuid]
@@ -120,13 +120,13 @@ watch(() => props.nodes.map(node => node.uuid), (uuids) => {
   <div class="space-y-4">
     <div class="flex flex-wrap items-center gap-2">
       <div class="relative min-w-52 flex-1 sm:max-w-80">
-        <Input v-model="searchText" placeholder="搜索节点、IP 或 CPU" class="h-8 bg-background/55 pl-8" />
+        <Input v-model="searchText" placeholder="搜尋伺服器、IP 或 CPU" class="h-8 bg-background/55 pl-8" />
         <Icon icon="tabler:search" width="14" height="14" class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
       </div>
-      <span class="text-xs tabular-nums text-muted-foreground">已选 {{ selectedNodes.length }} / {{ MAX_COMPARE_NODES }}</span>
+      <span class="text-xs tabular-nums text-muted-foreground">已選 {{ selectedNodes.length }} / {{ MAX_COMPARE_NODES }}</span>
       <Button variant="ghost" size="sm" :disabled="!selectedNodes.length" @click="clearSelection">
         <Icon icon="tabler:x" width="14" height="14" />
-        清空
+        重設
       </Button>
     </div>
 
@@ -148,7 +148,7 @@ watch(() => props.nodes.map(node => node.uuid), (uuids) => {
     <div v-if="selectedNodes.length" class="overflow-x-auto rounded-md bg-background/35 p-1">
       <div class="grid min-w-max gap-px overflow-hidden rounded-sm" :style="comparisonGridStyle">
         <div class="bg-background/65 px-3 py-2 text-xs font-semibold text-muted-foreground">
-          实时快照
+          即時快照
         </div>
         <div v-for="node in selectedNodes" :key="`header-${node.uuid}`" class="min-w-0 bg-background/65 px-3 py-2">
           <div class="flex items-center gap-1.5">
@@ -177,7 +177,7 @@ watch(() => props.nodes.map(node => node.uuid), (uuids) => {
     </div>
 
     <div v-else class="space-y-3 py-7 text-center text-sm text-muted-foreground">
-      <p>选择 2 至 4 台节点进行横向对比</p>
+      <p>選擇 2 至 4 台伺服器進行評比</p>
       <div class="mx-auto flex max-w-3xl flex-wrap justify-center gap-1.5">
         <span
           v-for="metric in compareMetrics" :key="`preview-${metric.key}`"

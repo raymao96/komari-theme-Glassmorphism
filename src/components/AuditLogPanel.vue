@@ -47,10 +47,10 @@ const pageStart = computed(() => total.value === 0 ? 0 : (page.value - 1) * limi
 const pageEnd = computed(() => Math.min(total.value, page.value * limit.value))
 const visitorAuditStatus = computed(() => {
   if (!appStore.visitorAuditSupported)
-    return { icon: 'tabler:clock-pause', tone: 'text-warning', text: '当前核心尚未发布访客审计接口；升级到包含 PR #602 的版本后自动启用此视图。' }
+    return { icon: 'tabler:clock-pause', tone: 'text-warning', text: '目前核心尚未提供訪客稽核介面；升級至包含 PR #602 的版本後將自動啟用此檢視畫面。' }
   if (!appStore.visitorAuditEnabled)
-    return { icon: 'tabler:shield-off', tone: 'text-warning', text: '核心已支持访客审计，但 visitor_audit_enabled 当前关闭。已有记录仍可查看。' }
-  return { icon: 'tabler:shield-check', tone: 'text-success', text: '访客审计已启用；IP 与 User-Agent 由服务端可信记录，前端只提交受限操作摘要。' }
+    return { icon: 'tabler:shield-off', tone: 'text-warning', text: '核心已支援訪客稽核，但 visitor_audit_enabled 目前為關閉狀態。既有記錄仍可檢視。' }
+  return { icon: 'tabler:shield-check', tone: 'text-success', text: '訪客稽核已啟用；IP 位址與 User-Agent 由伺服器端驗證記錄，前端僅送出受限的動作摘要。' }
 })
 
 function buildAuditLogRow(log: AuditLogEntry): AuditLogRow {
@@ -74,22 +74,22 @@ function buildAuditLogRow(log: AuditLogEntry): AuditLogRow {
 const rows = computed<AuditLogRow[]>(() => logs.value.map(buildAuditLogRow))
 
 const auditCsvColumns: Array<SnapshotCsvColumn<AuditLogRow>> = [
-  { label: '日志 ID', value: row => row.log.id },
-  { label: '时间', value: row => row.log.time },
-  { label: '来源 IP', value: row => row.log.ip || '-' },
-  { label: '用户 UUID', value: row => row.log.uuid || '-' },
-  { label: '会话 ID', value: row => row.sessionId || '-' },
-  { label: '日志类型', value: row => row.log.msg_type || '-' },
-  { label: '访客事件', value: row => row.visitor?.event || '-' },
-  { label: '路径', value: row => row.visitor?.path || '-' },
+  { label: '日誌 ID', value: row => row.log.id },
+  { label: '時間', value: row => row.log.time },
+  { label: '來源 IP', value: row => row.log.ip || '-' },
+  { label: 'UUID', value: row => row.log.uuid || '-' },
+  { label: '工作階段 ID', value: row => row.sessionId || '-' },
+  { label: '日誌類型', value: row => row.log.msg_type || '-' },
+  { label: '訪客活動', value: row => row.visitor?.event || '-' },
+  { label: '路徑', value: row => row.visitor?.path || '-' },
   { label: '路由', value: row => row.visitor?.route || '-' },
-  { label: '目标', value: row => row.visitor?.target || '-' },
-  { label: 'User-Agent', value: row => row.visitor?.userAgent || '-' },
-  { label: '客户端摘要', value: row => row.userAgentSummary || '-' },
-  { label: '站点指纹', value: row => row.fingerprintId || '-' },
-  { label: 'WebRTC 指纹', value: row => row.webRtcFingerprintId || '-' },
-  { label: '访客详情', value: row => row.visitor ? JSON.stringify(row.visitor.detail) : '-' },
-  { label: '原始日志', value: row => row.log.message || '-' },
+  { label: '目標', value: row => row.visitor?.target || '-' },
+  { label: 'UA', value: row => row.visitor?.userAgent || '-' },
+  { label: 'UA 摘要', value: row => row.userAgentSummary || '-' },
+  { label: '環境指紋', value: row => row.fingerprintId || '-' },
+  { label: 'WebRTC 指紋', value: row => row.webRtcFingerprintId || '-' },
+  { label: '訪客詳情', value: row => row.visitor ? JSON.stringify(row.visitor.detail) : '-' },
+  { label: '原始日誌', value: row => row.log.message || '-' },
 ]
 
 function formatLogTime(time: string): string {
@@ -130,11 +130,11 @@ function yieldToBrowser(): Promise<void> {
 async function verifyAuditExportPermission(view: AuditView): Promise<boolean> {
   const granted = await appStore.requireLoginPermission('auditLog', { force: true })
   if (!granted) {
-    window.$message?.warning('登录状态已过期，请重新登录后导出审计日志。')
+    window.$message?.warning('登入逾時，請重新登入。')
     return false
   }
   if (view === 'visitor' && !appStore.visitorAuditSupported) {
-    window.$message?.warning('当前核心尚未支持访客审计筛选。')
+    window.$message?.warning('目前核心尚未支援訪客稽核功能。')
     return false
   }
   return true
@@ -234,10 +234,10 @@ async function exportAudit(format: 'json' | 'csv'): Promise<void> {
       target: exportView,
       detail: { record_count: exportRows.length, filter: filterName },
     })
-    window.$message?.success(`已导出 ${exportRows.length} 条审计日志。`)
+    window.$message?.success(`已匯出 ${exportRows.length} 筆稽核日誌。`)
   }
   catch (err) {
-    window.$message?.error(err instanceof Error ? err.message : '导出审计日志失败')
+    window.$message?.error(err instanceof Error ? err.message : '無法匯出稽核日誌')
   }
   finally {
     exporting.value = null
@@ -247,7 +247,7 @@ async function exportAudit(format: 'json' | 'csv'): Promise<void> {
 async function fetchLogs(): Promise<void> {
   const granted = await appStore.requireLoginPermission('auditLog', { force: false })
   if (!granted) {
-    error.value = '登录状态已过期，请重新登录后查看审计日志。'
+    error.value = '登入逾時，請重新登入。'
     logs.value = []
     total.value = 0
     return
@@ -280,7 +280,7 @@ async function fetchLogs(): Promise<void> {
   catch (err) {
     if (currentRequestId !== requestId)
       return
-    error.value = err instanceof Error ? err.message : '获取审计日志失败'
+    error.value = err instanceof Error ? err.message : '無法取得稽核日誌'
     logs.value = []
     total.value = 0
   }
@@ -296,7 +296,7 @@ async function setVisitorAuditEnabled(enabled: boolean): Promise<void> {
 
   const granted = await appStore.requireLoginPermission('auditLog', { force: true })
   if (!granted) {
-    window.$message?.warning('登录状态已过期，请重新登录后修改访客审计设置。')
+    window.$message?.warning('登入逾時，請重新登入。')
     return
   }
 
@@ -309,10 +309,10 @@ async function setVisitorAuditEnabled(enabled: boolean): Promise<void> {
         visitor_audit_enabled: enabled,
       }
     }
-    window.$message?.success(enabled ? '访客审计采集已启用。' : '访客审计采集已暂停。')
+    window.$message?.success(enabled ? '已啟用訪客稽核收集。' : '已暫停訪客稽核收集。')
   }
   catch (err) {
-    window.$message?.error(err instanceof Error ? err.message : '更新访客审计设置失败')
+    window.$message?.error(err instanceof Error ? err.message : '無法更新訪客稽核設定')
   }
   finally {
     updatingVisitorAudit.value = false
@@ -365,10 +365,10 @@ onMounted(() => {
       <template #header>
         <div>
           <div class="font-semibold">
-            安全审计日志
+            安全稽核日誌
           </div>
           <div class="text-xs text-muted-foreground">
-            管理员操作与访客访问记录，默认每页 {{ limit }} 条。
+            管理員動作與訪客存取記錄，預設每頁 {{ limit }} 筆。
           </div>
         </div>
       </template>
@@ -377,20 +377,20 @@ onMounted(() => {
           <Tabs v-model="logView">
             <TabsList class="h-8 rounded-md bg-background/60">
               <TabsTrigger value="all" class="h-6.5 rounded-sm px-3 text-xs">
-                全部日志
+                全部日誌
               </TabsTrigger>
               <TabsTrigger value="visitor" class="h-6.5 rounded-sm px-3 text-xs" :disabled="!appStore.visitorAuditSupported">
-                访客安全
+                訪客安全
               </TabsTrigger>
             </TabsList>
           </Tabs>
           <div class="flex flex-wrap items-center justify-between gap-2 sm:justify-end">
             <div class="text-sm text-muted-foreground">
               <template v-if="total > 0">
-                {{ pageStart }}-{{ pageEnd }} / {{ total }} 条
+                {{ pageStart }}-{{ pageEnd }} / {{ total }} 筆
               </template>
               <template v-else>
-                暂无记录
+                暫無記錄
               </template>
             </div>
             <Button size="sm" variant="outline" class="bg-background/60" :disabled="loading || Boolean(exporting) || total === 0" @click="exportAudit('json')">
@@ -403,7 +403,7 @@ onMounted(() => {
             </Button>
             <Button size="sm" variant="outline" class="bg-background/60" :disabled="loading || Boolean(exporting)" @click="refreshLogs">
               <Icon :icon="loading ? 'tabler:loader-2' : 'tabler:refresh'" width="14" height="14" :class="loading && 'animate-spin'" />
-              {{ loading ? '刷新中' : '刷新' }}
+              {{ loading ? '正在重整' : '重整' }}
             </Button>
           </div>
         </div>
@@ -421,7 +421,7 @@ onMounted(() => {
             @click="setVisitorAuditEnabled(!appStore.visitorAuditEnabled)"
           >
             <Icon :icon="updatingVisitorAudit ? 'tabler:loader-2' : appStore.visitorAuditEnabled ? 'tabler:shield-pause' : 'tabler:shield-check'" width="14" height="14" :class="updatingVisitorAudit && 'animate-spin'" />
-            {{ updatingVisitorAudit ? '更新中' : appStore.visitorAuditEnabled ? '暂停采集' : '启用采集' }}
+            {{ updatingVisitorAudit ? '更新中' : appStore.visitorAuditEnabled ? '暫停收集' : '啟用收集' }}
           </Button>
         </div>
       </div>
@@ -430,7 +430,7 @@ onMounted(() => {
     <CardX class="border-none bg-background/50" content-class="overflow-x-auto">
       <template #header>
         <div class="font-semibold">
-          {{ logView === 'visitor' ? '访客安全事件' : '日志列表' }}
+          {{ logView === 'visitor' ? '訪客活動記錄' : '日誌列表' }}
         </div>
       </template>
       <Spinner :show="loading">
@@ -441,22 +441,22 @@ onMounted(() => {
           <thead class="text-xs text-muted-foreground">
             <tr class="border-b border-border/60">
               <th class="w-36 px-2 py-2 font-medium">
-                时间
+                時間
               </th>
               <th class="w-36 px-2 py-2 font-medium">
-                来源 IP
+                來源 IP
               </th>
               <th class="w-44 px-2 py-2 font-medium">
-                身份 / 会话
+                身份 / 工作階段
               </th>
               <th class="w-40 px-2 py-2 font-medium">
-                事件 / 类型
+                活動 / 類型
               </th>
               <th class="w-56 px-2 py-2 font-medium">
-                路径 / 目标
+                路徑 / 目標
               </th>
               <th class="px-2 py-2 font-medium">
-                客户端 / 详情
+                Agent / 詳情
               </th>
             </tr>
           </thead>
@@ -471,7 +471,7 @@ onMounted(() => {
               <td class="px-2 py-3 text-xs">
                 <div class="flex items-center gap-1.5">
                   <Icon :icon="row.log.uuid ? 'tabler:user-shield' : 'tabler:user-question'" width="14" height="14" class="shrink-0 text-muted-foreground" />
-                  <span>{{ row.log.uuid ? '已登录用户' : row.visitor ? '匿名访客' : '-' }}</span>
+                  <span>{{ row.log.uuid ? '已登入使用者' : row.visitor ? '匿名訪客' : '-' }}</span>
                 </div>
                 <div v-if="row.log.uuid" class="mt-1 truncate font-mono text-[10px] text-muted-foreground" :title="row.log.uuid">
                   {{ shortId(row.log.uuid) }}
@@ -498,7 +498,7 @@ onMounted(() => {
                     {{ row.visitor.path || '-' }}
                   </div>
                   <div v-if="row.visitor.target" class="mt-1 break-all text-muted-foreground">
-                    目标：{{ row.visitor.target }}
+                    目標：{{ row.visitor.target }}
                   </div>
                   <div v-if="row.visitor.route" class="mt-1 text-[10px] text-muted-foreground">
                     路由：{{ row.visitor.route }}
@@ -522,13 +522,13 @@ onMounted(() => {
                     {{ row.detailText }}
                   </div>
                 </template>
-                <span v-else class="text-muted-foreground">原始内容见路径 / 目标列</span>
+                <span v-else class="text-muted-foreground">原始内容詳見路徑 / 目標欄</span>
               </td>
             </tr>
           </tbody>
         </table>
         <div v-else class="py-10 text-center text-sm text-muted-foreground">
-          {{ logView === 'visitor' && !appStore.visitorAuditSupported ? '等待核心发布访客审计能力。' : '暂无审计日志。' }}
+          {{ logView === 'visitor' && !appStore.visitorAuditSupported ? '核心尚未支援訪客稽核功能，請等待後續更新。' : '尚無稽核日誌。' }}
         </div>
       </Spinner>
     </CardX>
@@ -536,11 +536,11 @@ onMounted(() => {
     <div class="flex items-center justify-end gap-2">
       <Button size="sm" variant="outline" class="bg-background/50" :disabled="loading || page <= 1" @click="setPage(page - 1)">
         <Icon icon="tabler:chevron-left" width="14" height="14" />
-        上一页
+        上一頁
       </Button>
       <span class="text-xs text-muted-foreground tabular-nums">{{ page }} / {{ totalPages }}</span>
       <Button size="sm" variant="outline" class="bg-background/50" :disabled="loading || page >= totalPages" @click="setPage(page + 1)">
-        下一页
+        下一頁
         <Icon icon="tabler:chevron-right" width="14" height="14" />
       </Button>
     </div>
