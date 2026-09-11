@@ -349,7 +349,7 @@ export function isFreeNode(node: { price: number, tags?: string }): boolean {
  */
 export function formatPrice(price: number, currency: string = '￥', lang: 'zh-CN' | 'en-US' = 'zh-CN'): string {
   if (price === 0 || isFreePrice(price))
-    return lang === 'zh-CN' ? '免费' : 'Free'
+    return lang === 'zh-CN' ? '免費' : 'Free'
   return `${currency}${price}`
 }
 

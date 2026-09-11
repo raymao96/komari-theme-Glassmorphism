@@ -67,18 +67,18 @@ const usageAvailable = computed(() => Boolean(
 ))
 
 const sourceLabels: Record<ExchangeRateSource | 'loading', string> = {
-  'loading': '载入中',
-  'network': '今日网络汇率',
-  'cache': '今日缓存汇率',
-  'stale-cache': '历史缓存汇率',
-  'default': '内置参考汇率',
+  'loading': '正在載入',
+  'network': '即時網路匯率',
+  'cache': '今日快取匯率',
+  'stale-cache': '快取匯率（非即時）',
+  'default': '內建參考匯率',
 }
 
 const trafficModeLabels: Record<MeteredTrafficMode, string> = {
-  sum: '上行 + 下行',
-  max: '取较大值',
-  up: '仅上行',
-  down: '仅下行',
+  sum: '上傳 + 下載',
+  max: '取較大值',
+  up: '只計上傳',
+  down: '只計下載',
 }
 
 function toCNY(amount: number, currencyValue: string): number | null {
@@ -91,17 +91,17 @@ function toCNY(amount: number, currencyValue: string): number | null {
 
 function formatDisplayAmount(amountCNY: number): string {
   if (displayRate.value === null)
-    return '汇率不可用'
+    return '無法取得匯率'
   const formatted = financeHelper.formatFinanceAmount(amountCNY * displayRate.value, props.currency)
   return `${formatted.symbol}${formatted.value}`
 }
 
 function formatRemainingValue(node: NodeData, amountCNY: number): string {
-  return isFreePrice(node.price) ? '无' : formatDisplayAmount(amountCNY)
+  return isFreePrice(node.price) ? '無' : formatDisplayAmount(amountCNY)
 }
 
 function formatOptionalDisplayAmount(amountCNY: number | null): string {
-  return amountCNY === null ? '不可用' : formatDisplayAmount(amountCNY)
+  return amountCNY === null ? '無法使用' : formatDisplayAmount(amountCNY)
 }
 
 function formatPricingAmount(amount: number): string {
@@ -115,11 +115,11 @@ const fixedRows = computed(() => visibleNodes.value.map((node) => {
   const expireStatus = getExpireStatus(node.expired_at)
   const days = getDaysUntilExpired(node.expired_at)
   const expiryLabel = expireStatus === 'unknown'
-    ? '未设置'
+    ? '未設定'
     : expireStatus === 'expired'
-      ? '已过期'
+      ? '已過期'
       : expireStatus === 'long_term'
-        ? '长期'
+        ? '無限期'
         : days === 0
           ? '今天'
           : `${days} 天`
@@ -190,7 +190,7 @@ function handleTrafficModeChange(event: Event) {
 function handleMeteredNumberUpdate(key: 'trafficRate' | 'timeRate' | 'manualHours' | 'oneTimeFee', rawValue: string | number) {
   const value = String(rawValue).trim() === '' ? 0 : Number(rawValue)
   if (!Number.isFinite(value) || value < 0 || value > financeHelper.MAX_ESTIMATE_INPUT) {
-    window.$message?.warning(`请输入 0 到 ${financeHelper.MAX_ESTIMATE_INPUT.toLocaleString()} 之间的数字。`)
+    window.$message?.warning(`請輸入 0 到 ${financeHelper.MAX_ESTIMATE_INPUT.toLocaleString()} 之間的數字。`)
     return
   }
   meteredSettings.value[key] = value
@@ -213,7 +213,7 @@ function useSnapshotUptime() {
 function clearMeteredSettings() {
   financeHelper.clearStoredMeteredEstimateSettings(selectedNodeUuid.value)
   meteredSettings.value = financeHelper.getStoredMeteredEstimateSettings(selectedNodeUuid.value)
-  window.$message?.success('已清除当前节点的本地估算参数。')
+  window.$message?.success('已重設所有欄位，請重新輸入。')
 }
 
 function persistMeteredSettings() {
@@ -226,7 +226,7 @@ function formatSnapshotTime(): string {
 
 function formatRateUpdatedAt(): string {
   if (!props.ratesUpdatedAt)
-    return '无更新时间'
+    return '尚無更新時間'
   return new Date(props.ratesUpdatedAt).toLocaleString('zh-CN', { hour12: false })
 }
 
@@ -246,15 +246,15 @@ function formatTraffic(tib: number): string {
 <template>
   <AppDialog
     :open="open"
-    title="价值与费用明细"
-    description="固定账单、纯前端按量估算与汇率设置"
+    title="剩餘價值明細"
+    description="含基本費用、用量試算與匯率"
     @update:open="emit('update:open', $event)"
   >
     <div class="space-y-4">
       <div class="grid grid-cols-3 divide-x divide-border/60 border-y border-border/60 py-3 text-center">
         <div class="min-w-0 px-2">
           <div class="text-xs text-muted-foreground">
-            剩余价值
+            總剩餘價值
           </div>
           <div class="mt-1 truncate text-lg font-semibold tabular-nums">
             {{ formatDisplayAmount(totalRemainingCNY) }}
@@ -262,7 +262,7 @@ function formatTraffic(tib: number): string {
         </div>
         <div class="min-w-0 px-2">
           <div class="text-xs text-muted-foreground">
-            固定月均支出
+            月均支出
           </div>
           <div class="mt-1 truncate text-lg font-semibold tabular-nums">
             {{ formatDisplayAmount(totalMonthlyCNY) }}
@@ -270,7 +270,7 @@ function formatTraffic(tib: number): string {
         </div>
         <div class="min-w-0 px-2">
           <div class="text-xs text-muted-foreground">
-            当前节点估算
+            目標伺服器試算總金額
           </div>
           <div class="mt-1 truncate text-lg font-semibold tabular-nums">
             {{ formatOptionalDisplayAmount(totalMeteredCNY) }}
@@ -282,13 +282,13 @@ function formatTraffic(tib: number): string {
         <div class="flex flex-wrap items-center gap-2">
           <TabsList class="h-9 min-w-0 flex-1 sm:flex-none">
             <TabsTrigger value="fixed">
-              <Icon icon="tabler:calendar-dollar" />固定账单
+              <Icon icon="tabler:calendar-dollar" />基本費用
             </TabsTrigger>
             <TabsTrigger value="metered">
-              <Icon icon="tabler:calculator" />按量估算
+              <Icon icon="tabler:calculator" />用量試算
             </TabsTrigger>
             <TabsTrigger value="rates">
-              <Icon icon="tabler:currency-yuan" />汇率设置
+              <Icon icon="tabler:currency-yuan" />匯率
             </TabsTrigger>
           </TabsList>
           <label class="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
@@ -298,7 +298,7 @@ function formatTraffic(tib: number): string {
               :checked="excludeFree"
               @change="emit('update:excludeFree', ($event.target as HTMLInputElement).checked)"
             >
-            排除免费节点
+            不計免費資源
           </label>
         </div>
 
@@ -306,15 +306,15 @@ function formatTraffic(tib: number): string {
           <div class="flex items-end justify-between gap-3">
             <div>
               <h3 class="text-sm font-semibold">
-                固定账单明细
+                基本費用明細
               </h3>
               <p class="text-xs text-muted-foreground">
-                沿用 Komari 原生价格、周期和到期时间。
+                本頁數據來自後台自訂的主機基本費用、週期和有效期限。
               </p>
             </div>
             <select
               :value="currency"
-              aria-label="显示币种"
+              aria-label="顯示幣別"
               class="h-8 rounded-md border border-input bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-ring"
               @change="handleCurrencyChange"
             >
@@ -329,16 +329,16 @@ function formatTraffic(tib: number): string {
               <thead class="bg-muted/45 text-muted-foreground">
                 <tr>
                   <th class="px-3 py-2 font-medium">
-                    节点
+                    伺服器
                   </th>
                   <th class="px-3 py-2 font-medium">
-                    固定费用
+                    基本費用
                   </th>
                   <th class="px-3 py-2 font-medium">
-                    到期
+                    效期
                   </th>
                   <th class="px-3 py-2 font-medium">
-                    剩余价值
+                    剩餘價值
                   </th>
                   <th class="px-3 py-2 text-right font-medium">
                     月均支出
@@ -367,7 +367,7 @@ function formatTraffic(tib: number): string {
                 </tr>
                 <tr v-if="fixedRows.length === 0">
                   <td colspan="5" class="px-3 py-8 text-center text-muted-foreground">
-                    暂无账单节点
+                    暫無固定出帳的伺服器
                   </td>
                 </tr>
               </tbody>
@@ -377,7 +377,7 @@ function formatTraffic(tib: number): string {
 
         <TabsContent value="metered" class="space-y-3">
           <div class="rounded-md border border-sky-500/20 bg-sky-500/7 px-3 py-2 text-xs text-muted-foreground">
-            按量费用估算器仅在当前浏览器计算，不写入 Komari。当前探针累计流量可能因机器重启、Agent 重启或网卡变化而重置，也可能包含安装 Komari 前的流量。1 TiB = 1024⁴ bytes，本结果不是正式账单。
+            用量試算僅於當前瀏覽器進行，資料不寫入後端。目前探針的傳輸用量可能因伺服器重啟、Agent 重啟或網路介面變動而重設，亦可能包含安裝 Agent 前的用量。1 TiB = 1024⁴ bytes，本頁試算結果僅供參考，不代表正式帳單。
           </div>
 
           <div class="flex flex-wrap items-end gap-3">
@@ -385,7 +385,7 @@ function formatTraffic(tib: number): string {
               <span class="font-medium">估算节点</span>
               <select
                 :value="selectedNodeUuid"
-                aria-label="估算节点"
+                aria-label="試算目標"
                 class="h-9 w-full rounded-md border border-input bg-background px-2 outline-none focus:ring-2 focus:ring-ring"
                 @change="handleSelectedNodeChange"
               >
@@ -393,7 +393,7 @@ function formatTraffic(tib: number): string {
               </select>
             </label>
             <label class="space-y-1 text-xs">
-              <span class="font-medium">流量口径</span>
+              <span class="font-medium">計費傳輸量</span>
               <select
                 :value="meteredSettings.trafficMode"
                 class="h-9 w-full rounded-md border border-input bg-background px-2 outline-none focus:ring-2 focus:ring-ring"
@@ -403,7 +403,7 @@ function formatTraffic(tib: number): string {
               </select>
             </label>
             <label class="space-y-1 text-xs">
-              <span class="font-medium">计价币种</span>
+              <span class="font-medium">計費幣別</span>
               <select
                 :value="meteredSettings.currency"
                 class="h-9 w-full rounded-md border border-input bg-background px-2 outline-none focus:ring-2 focus:ring-ring"
@@ -413,10 +413,10 @@ function formatTraffic(tib: number): string {
               </select>
             </label>
             <label class="space-y-1 text-xs">
-              <span class="font-medium">显示币种</span>
+              <span class="font-medium">顯示幣別</span>
               <select
                 :value="currency"
-                aria-label="估算显示币种"
+                aria-label="試算顯示幣別"
                 class="h-9 w-full rounded-md border border-input bg-background px-2 outline-none focus:ring-2 focus:ring-ring"
                 @change="handleCurrencyChange"
               >
@@ -427,41 +427,41 @@ function formatTraffic(tib: number): string {
 
           <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
             <label class="space-y-1 text-xs">
-              <span class="font-medium">流量单价 / TiB</span>
+              <span class="font-medium">傳輸量費率 / 每 TiB 金額</span>
               <Input type="number" min="0" :max="financeHelper.MAX_ESTIMATE_INPUT" step="any" :model-value="meteredSettings.trafficRate" class="h-9" @update:model-value="handleMeteredNumberUpdate('trafficRate', $event)" />
             </label>
             <label class="space-y-1 text-xs">
-              <span class="font-medium">小时单价 / h</span>
+              <span class="font-medium">計時費率 / 每小時金額</span>
               <Input type="number" min="0" :max="financeHelper.MAX_ESTIMATE_INPUT" step="any" :model-value="meteredSettings.timeRate" class="h-9" @update:model-value="handleMeteredNumberUpdate('timeRate', $event)" />
             </label>
             <label class="space-y-1 text-xs">
-              <span class="font-medium">手工计费小时</span>
+              <span class="font-medium">人工計費時數</span>
               <Input type="number" min="0" :max="financeHelper.MAX_ESTIMATE_INPUT" step="any" :model-value="meteredSettings.manualHours" class="h-9" @update:model-value="handleMeteredNumberUpdate('manualHours', $event)" />
             </label>
             <label class="space-y-1 text-xs">
-              <span class="font-medium">本次附加费用</span>
+              <span class="font-medium">其他附加費用</span>
               <Input type="number" min="0" :max="financeHelper.MAX_ESTIMATE_INPUT" step="any" :model-value="meteredSettings.oneTimeFee" class="h-9" @update:model-value="handleMeteredNumberUpdate('oneTimeFee', $event)" />
             </label>
           </div>
 
           <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span>快照：{{ formatSnapshotTime() }}</span>
-            <span v-if="selectedSnapshot?.statusUpdatedAt">· 探针上报：{{ selectedSnapshot.statusUpdatedAt }}</span>
+            <span v-if="selectedSnapshot?.statusUpdatedAt">· 上報：{{ selectedSnapshot.statusUpdatedAt }}</span>
             <Button type="button" size="sm" variant="outline" class="ml-auto h-8 gap-1.5" :disabled="!snapshotUptimeAvailable" @click="useSnapshotUptime">
-              <Icon icon="tabler:clock-down" width="14" height="14" />带入当前 uptime
+              <Icon icon="tabler:clock-down" width="14" height="14" />帶入目前線上時數
             </Button>
             <Button type="button" size="sm" variant="ghost" class="h-8 gap-1.5" @click="clearMeteredSettings">
-              <Icon icon="tabler:trash" width="14" height="14" />清除本地配置
+              <Icon icon="tabler:trash" width="14" height="14" />重設所有欄位
             </Button>
           </div>
 
           <div v-if="!usageAvailable" class="rounded-md border border-amber-500/25 bg-amber-500/8 px-3 py-5 text-center text-sm text-amber-700 dark:text-amber-300">
-            当前节点离线或没有可用的实时累计流量，无法进行本次估算。
+            該伺服器離線或暫無即時統計傳輸量，無法進行本次試算。
           </div>
           <div v-else-if="selectedEstimate" class="grid grid-cols-2 divide-x divide-y divide-border/60 overflow-hidden rounded-md border border-border/60 md:grid-cols-4 md:divide-y-0">
             <div class="p-3">
               <div class="text-xs text-muted-foreground">
-                计费流量
+                計費傳輸用量
               </div>
               <div class="mt-1 font-semibold tabular-nums">
                 {{ formatTraffic(selectedEstimate.trafficTiB) }}
@@ -472,7 +472,7 @@ function formatTraffic(tib: number): string {
             </div>
             <div class="p-3">
               <div class="text-xs text-muted-foreground">
-                流量费用
+                傳輸量預估費用
               </div>
               <div class="mt-1 font-semibold tabular-nums">
                 {{ formatPricingAmount(selectedEstimate.trafficCost) }}
@@ -480,24 +480,24 @@ function formatTraffic(tib: number): string {
             </div>
             <div class="p-3">
               <div class="text-xs text-muted-foreground">
-                时间 / 附加
+                計時費 / 附加費
               </div>
               <div class="mt-1 font-semibold tabular-nums">
                 {{ formatPricingAmount(selectedEstimate.timeCost) }} / {{ formatPricingAmount(selectedEstimate.oneTimeCost) }}
               </div>
               <div class="mt-1 text-[11px] text-muted-foreground">
-                手工 {{ formatHours(selectedEstimate.runtimeHours) }}
+                人工計費 {{ formatHours(selectedEstimate.runtimeHours) }}
               </div>
             </div>
             <div class="p-3">
               <div class="text-xs text-muted-foreground">
-                显示金额
+                總結算金額
               </div>
               <div class="mt-1 text-lg font-semibold tabular-nums">
                 {{ formatOptionalDisplayAmount(totalMeteredCNY) }}
               </div>
               <div class="mt-1 text-[11px] text-muted-foreground">
-                源币种小计 {{ formatPricingAmount(selectedEstimate.totalCost) }}
+                原幣小計 {{ formatPricingAmount(selectedEstimate.totalCost) }}
               </div>
             </div>
           </div>
@@ -507,15 +507,15 @@ function formatTraffic(tib: number): string {
           <div class="flex flex-wrap items-center gap-2">
             <div class="mr-auto">
               <h3 class="text-sm font-semibold">
-                汇率
+                匯率
               </h3>
               <p class="text-xs text-muted-foreground">
-                {{ sourceLabels[source] }} · {{ formatRateUpdatedAt() }} · 1 CNY 对应数值
+                {{ sourceLabels[source] }} · {{ formatRateUpdatedAt() }} · 以 1 CNY 為基準換算
               </p>
             </div>
             <select
               :value="currency"
-              aria-label="显示币种"
+              aria-label="顯示幣別"
               class="h-8 rounded-md border border-input bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-ring"
               @change="handleCurrencyChange"
             >
@@ -524,7 +524,7 @@ function formatTraffic(tib: number): string {
               </option>
             </select>
             <Button type="button" size="sm" variant="outline" class="h-8 gap-1.5" @click="emit('resetRates')">
-              <Icon icon="tabler:refresh" width="14" height="14" />恢复今日汇率
+              <Icon icon="tabler:refresh" width="14" height="14" />還原預設匯率
             </Button>
           </div>
 
