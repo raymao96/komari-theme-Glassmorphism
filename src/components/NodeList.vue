@@ -62,16 +62,16 @@ function toggleFavorite(node: NodeData): void {
 const showPrice = computed(() => appStore.privateFeaturesAllowed || !appStore.hidePriceWhenLoggedOut)
 
 const baseColumns: ColumnConfig[] = [
-  { key: 'status', label: '状态', width: '40px', sortable: false },
-  { key: 'os', label: '系统', width: '44px', sortable: false },
-  { key: 'name', label: '节点', width: 'minmax(180px, 0.85fr)', sortable: true },
-  { key: 'metadata', label: '信息', width: 'minmax(240px, 1.1fr)', sortable: false },
-  { key: 'uptime', label: '运行时间', width: '116px', sortable: true },
+  { key: 'status', label: '狀態', width: '40px', sortable: false },
+  { key: 'os', label: '系統', width: '44px', sortable: false },
+  { key: 'name', label: '伺服器名稱', width: 'minmax(180px, 0.85fr)', sortable: true },
+  { key: 'metadata', label: '基本資訊', width: 'minmax(240px, 1.1fr)', sortable: false },
+  { key: 'uptime', label: '運作時間', width: '116px', sortable: true },
   { key: 'cpu', label: 'CPU', width: '100px', sortable: false },
-  { key: 'mem', label: '内存', width: '100px', sortable: false },
-  { key: 'disk', label: '硬盘', width: '100px', sortable: false },
-  { key: 'traffic', label: '流量', width: '104px', sortable: false },
-  { key: 'rate', label: '速率', width: '88px', sortable: true },
+  { key: 'mem', label: 'RAM', width: '100px', sortable: false },
+  { key: 'disk', label: '磁碟', width: '100px', sortable: false },
+  { key: 'traffic', label: '傳輸用量', width: '104px', sortable: false },
+  { key: 'rate', label: '即時速率', width: '88px', sortable: true },
 ]
 
 const columns = computed(() => baseColumns.filter(col => col.key !== 'metadata' || appStore.nodeListMetadataEnabled))
@@ -256,7 +256,7 @@ function getNodeMessageTooltip(node: NodeData): string {
   const message = getNodeMessage(node)
   if (!message)
     return ''
-  const updatedAt = node.status_updated_at ? `\n更新时间：${formatDateTime(node.status_updated_at)}` : ''
+  const updatedAt = node.status_updated_at ? `\n更新時間：${formatDateTime(node.status_updated_at)}` : ''
   return `${message}${updatedAt}`
 }
 
@@ -267,10 +267,10 @@ function getPriceTags(node: NodeData): Array<string> {
     const days = getDaysUntilExpired(node.expired_at)
     const status = getExpireStatus(node.expired_at)
     if (status === 'expired')
-      tags.push(lang === 'zh-CN' ? '已过期' : 'Expired')
+      tags.push(lang === 'zh-CN' ? '已到期' : 'Expired')
     else if (status === 'long_term')
-      tags.push(lang === 'zh-CN' ? '长期' : 'Long-term')
-    else tags.push(lang === 'zh-CN' ? `剩余 ${days} 天` : `${days} days left`)
+      tags.push(lang === 'zh-CN' ? '永久' : 'Long-term')
+    else tags.push(lang === 'zh-CN' ? `剩餘 ${days} 天` : `${days} days left`)
     const priceText = formatPriceWithCycle(node.price, node.billing_cycle, node.currency, lang)
     tags.push(priceText)
   }

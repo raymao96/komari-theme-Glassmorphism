@@ -78,7 +78,7 @@ const LOAD_METRIC_KEYS = [
   'ping.loss',
 ] as const
 
-const CUSTOM_VIEW_LABEL = '自定义'
+const CUSTOM_VIEW_LABEL = '自訂'
 const PING_METRIC_KEYS = ['ping.latency_ms', 'ping.loss'] as const
 const METRIC_HISTORY_MAX_POINTS = 700
 const REALTIME_METRIC_REFRESH_MS = 30_000
@@ -147,7 +147,7 @@ const chartMarginWithLegend = { top: 30, right: 24, bottom: 52, left: 56 }
 
 // 视图选项
 const presetViews = [
-  { label: '4 小时', hours: 4 },
+  { label: '4 小時', hours: 4 },
   { label: '1 天', hours: 24 },
   { label: '7 天', hours: 168 },
   { label: '30 天', hours: 720 },
@@ -155,7 +155,7 @@ const presetViews = [
 
 // 可用视图列表
 const availableViews = computed(() => {
-  const views: { label: string, hours?: number }[] = [{ label: '实时' }]
+  const views: { label: string, hours?: number }[] = [{ label: '即時' }]
   const maxHours = maxRecordPreserveTime.value
 
   for (const v of presetViews) {
@@ -168,13 +168,13 @@ const availableViews = computed(() => {
   if (maxPreset && maxHours > maxPreset.hours) {
     const label = maxHours % 24 === 0
       ? `${Math.floor(maxHours / 24)} 天`
-      : `${maxHours} 小时`
+      : `${maxHours} 小時`
     views.push({ label, hours: maxHours })
   }
   else if (maxHours > 4 && !presetViews.some(v => v.hours === maxHours)) {
     const label = maxHours % 24 === 0
       ? `${Math.floor(maxHours / 24)} 天`
-      : `${maxHours} 小时`
+      : `${maxHours} 小時`
     views.push({ label, hours: maxHours })
   }
 
@@ -183,14 +183,14 @@ const availableViews = computed(() => {
 })
 
 // 当前选中的视图
-const selectedView = ref<string>('实时')
+const selectedView = ref<string>('即時')
 const customStartInput = ref('')
 const customEndInput = ref('')
 const selectedHours = computed(() => {
   const view = availableViews.value.find(v => v.label === selectedView.value)
   return view?.hours
 })
-const isRealtime = computed(() => selectedView.value === '实时')
+const isRealtime = computed(() => selectedView.value === '即時')
 const isCustomRange = computed(() => selectedView.value === CUSTOM_VIEW_LABEL)
 const customRange = computed<CustomRange | null>(() => {
   if (!customStartInput.value || !customEndInput.value)
@@ -211,8 +211,8 @@ const customRangeError = computed(() => {
   if (!isCustomRange.value || (!customStartInput.value && !customEndInput.value))
     return ''
   if (!customStartInput.value || !customEndInput.value)
-    return '请选择开始和结束时间'
-  return customRange.value ? '' : '结束时间必须晚于开始时间'
+    return '請指定起訖時間'
+  return customRange.value ? '' : '結束時間不得早於開始時間'
 })
 const effectiveHistoryHours = computed(() => isCustomRange.value ? customRange.value?.hours ?? 4 : selectedHours.value ?? 4)
 
@@ -247,17 +247,17 @@ const diskPredictionSummary = computed(() => {
   if (prediction) {
     const days = Math.max(0, Math.ceil(prediction.daysUntilFull))
     return days <= 0
-      ? '预计已满'
-      : `预计 ${days} 天后满`
+      ? '預估已滿'
+      : `預估 ${days} 天後耗盡`
   }
 
   const state = diskPredictionState.value
   if (state.reason === 'no_samples')
-    return '暂无趋势'
+    return '尚無趨勢資料'
   if (state.reason === 'insufficient_samples')
-    return '样本不足'
+    return '樣本數不足'
   if (state.reason === 'insufficient_duration')
-    return '趋势积累中'
+    return '趨勢分析中'
   return ''
 })
 
@@ -637,7 +637,7 @@ async function fetchRecentData() {
     remoteData.value = records.slice(-maxLength)
   }
   catch (err) {
-    error.value = err instanceof Error ? err.message : '获取数据失败'
+    error.value = err instanceof Error ? err.message : '無法載入資料'
     remoteData.value = []
   }
   finally {
@@ -654,7 +654,7 @@ async function fetchHistoryData() {
     metricData.value = null
     rawMetricSeries.value = []
     remoteData.value = []
-    error.value = customRangeError.value || '请选择有效的自定义时间范围'
+    error.value = customRangeError.value || '請選擇有效的自訂時間範圍'
     return
   }
 
@@ -682,7 +682,7 @@ async function fetchHistoryData() {
     }
   }
   catch (err) {
-    error.value = err instanceof Error ? err.message : '获取数据失败'
+    error.value = err instanceof Error ? err.message : '無法載入資料'
     remoteData.value = []
     metricData.value = null
     rawMetricSeries.value = []
@@ -786,10 +786,10 @@ function gpuDeviceEntries(): Array<{ index: number, name: string }> {
 }
 
 const trafficChartSeries = computed<MetricChartSeriesData[]>(() => [
-  recordMetricSeries('累计下载', chartColors.quinary, 'bytes', record => record.net_total_down),
-  recordMetricSeries('累计上传', chartColors.quaternary, 'bytes', record => record.net_total_up),
-  recordMetricSeries('周期下载', chartColors.tertiary, 'bytes', record => record.traffic_down, true),
-  recordMetricSeries('周期上传', chartColors.secondary, 'bytes', record => record.traffic_up, true),
+  recordMetricSeries('總下載量', chartColors.quinary, 'bytes', record => record.net_total_down),
+  recordMetricSeries('總上傳量', chartColors.quaternary, 'bytes', record => record.net_total_up),
+  recordMetricSeries('區間下載', chartColors.tertiary, 'bytes', record => record.traffic_down, true),
+  recordMetricSeries('區間上傳', chartColors.secondary, 'bytes', record => record.traffic_up, true),
 ].filter(seriesHasData))
 
 const gpuMemoryChartSeries = computed<MetricChartSeriesData[]>(() => gpuDeviceEntries().flatMap((device, index) => {
@@ -800,7 +800,7 @@ const gpuMemoryChartSeries = computed<MetricChartSeriesData[]>(() => gpuDeviceEn
     record => record.gpu_detailed?.[device.index]?.mem_used,
   )
   const total = recordMetricSeries(
-    `${device.name} 总量`,
+    `${device.name} 總量`,
     metricSeriesColors[(index * 2 + 1) % metricSeriesColors.length]!,
     'bytes',
     record => record.gpu_detailed?.[device.index]?.mem_total,
@@ -810,10 +810,10 @@ const gpuMemoryChartSeries = computed<MetricChartSeriesData[]>(() => gpuDeviceEn
 }))
 
 const temperatureChartSeries = computed<MetricChartSeriesData[]>(() => {
-  const series = [recordMetricSeries('系统温度', chartColors.secondary, 'temperature', record => record.temp)]
+  const series = [recordMetricSeries('系統溫度', chartColors.secondary, 'temperature', record => record.temp)]
   if (appStore.gpuChartEnabled) {
     series.push(...gpuDeviceEntries().map((device, index) => recordMetricSeries(
-      `${device.name} 温度`,
+      `${device.name} 溫度`,
       metricSeriesColors[index % metricSeriesColors.length]!,
       'temperature',
       record => record.gpu_detailed?.[device.index]?.temperature,
@@ -829,7 +829,7 @@ function pingSeries(metricKey: 'ping.latency_ms' | 'ping.loss'): MetricChartSeri
     .map<MetricChartSeriesData>((series, index) => {
       const tags = metricTags(series)
       const taskId = String(tags.task_id ?? tags.task ?? '')
-      const taskName = pingTaskMap.value.get(taskId)?.name || (taskId ? `任务 ${taskId}` : `Ping ${index + 1}`)
+      const taskName = pingTaskMap.value.get(taskId)?.name || (taskId ? `檢測項目 ${taskId}` : `Ping ${index + 1}`)
       return {
         name: taskName,
         color: metricSeriesColors[index % metricSeriesColors.length]!,
@@ -938,8 +938,8 @@ const cpuChartOption = computed(() => ({
         if (item.seriesName === 'CPU') {
           html += `<div style="display:flex;align-items:center">${colorDot}<span>CPU</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${item.value?.toFixed(1) ?? '-'}%</span></div>`
         }
-        else if (item.seriesName === '负载') {
-          html += `<div style="display:flex;align-items:center">${colorDot}<span>系统负载</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${item.value?.toFixed(2) ?? '-'}</span></div>`
+        else if (item.seriesName === '負載') {
+          html += `<div style="display:flex;align-items:center">${colorDot}<span>系統負載</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${item.value?.toFixed(2) ?? '-'}</span></div>`
         }
       }
       html += '</div>'
@@ -959,7 +959,7 @@ const cpuChartOption = computed(() => ({
     },
     {
       ...baseYAxisConfig.value,
-      name: '负载',
+      name: '負載',
       nameTextStyle: { color: chartThemeColors.value.textSecondary, padding: [0, 0, 0, 40] },
       min: 0,
       splitLine: { show: false },
@@ -989,7 +989,7 @@ const cpuChartOption = computed(() => ({
       },
     },
     {
-      name: '负载',
+      name: '負載',
       type: 'line',
       data: chartData.value.map(r => r.load),
 
@@ -1036,11 +1036,11 @@ const memoryChartOption = computed(() => ({
         else if (item.seriesName === 'Swap') {
           html += `<div style="display:flex;align-items:center">${colorDot}<span>Swap</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${formatBytes(swapUsed)} (${swapPercent}%)</span></div>`
         }
-        else if (item.seriesName === 'RAM 总量') {
-          html += `<div style="display:flex;align-items:center">${colorDot}<span>RAM 总量</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${formatBytes(ramTotal)}</span></div>`
+        else if (item.seriesName === 'RAM 總容量') {
+          html += `<div style="display:flex;align-items:center">${colorDot}<span>RAM 總容量</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${formatBytes(ramTotal)}</span></div>`
         }
-        else if (item.seriesName === 'Swap 总量') {
-          html += `<div style="display:flex;align-items:center">${colorDot}<span>Swap 总量</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${formatBytes(swapTotal)}</span></div>`
+        else if (item.seriesName === 'Swap 總容量') {
+          html += `<div style="display:flex;align-items:center">${colorDot}<span>Swap 總容量</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${formatBytes(swapTotal)}</span></div>`
         }
       }
       html += '</div>'
@@ -1048,7 +1048,7 @@ const memoryChartOption = computed(() => ({
     },
   },
   legend: {
-    data: ['RAM', 'RAM 总量', 'Swap', 'Swap 总量'],
+    data: ['RAM', 'RAM 總容量', 'Swap', 'Swap 總容量'],
     bottom: 4,
     itemWidth: 10,
     itemHeight: 8,
@@ -1058,7 +1058,7 @@ const memoryChartOption = computed(() => ({
   xAxis: baseXAxisConfig.value,
   yAxis: {
     ...baseYAxisConfig.value,
-    name: '内存',
+    name: '記憶體',
     nameTextStyle: { color: chartThemeColors.value.textSecondary, padding: [0, 40, 0, 0] },
     axisLabel: {
       ...baseYAxisConfig.value.axisLabel,
@@ -1088,7 +1088,7 @@ const memoryChartOption = computed(() => ({
       },
     },
     {
-      name: 'RAM 总量',
+      name: 'RAM 總容量',
       type: 'line',
       data: chartData.value.map(r => r.ram_total ?? nodeInfo.value?.mem_total ?? null),
       showSymbol: false,
@@ -1103,7 +1103,7 @@ const memoryChartOption = computed(() => ({
       lineStyle: { width: 1.5, color: chartColors.secondary, cap: 'round' as const },
     },
     {
-      name: 'Swap 总量',
+      name: 'Swap 總容量',
       type: 'line',
       data: chartData.value.map(r => r.swap_total ?? nodeInfo.value?.swap_total ?? null),
       showSymbol: false,
@@ -1138,7 +1138,7 @@ const diskChartOption = computed(() => ({
       html += '<div style="display:flex;flex-direction:column;gap:4px">'
       for (const item of p) {
         const colorDot = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${item.color};margin-right:8px;flex-shrink:0"></span>`
-        const text = item.seriesName === '磁盘总量' ? formatBytes(diskTotal) : `${formatBytes(diskUsed)} (${diskPercent}%)`
+        const text = item.seriesName === '磁碟總容量' ? formatBytes(diskTotal) : `${formatBytes(diskUsed)} (${diskPercent}%)`
         html += `<div style="display:flex;align-items:center">${colorDot}<span>${item.seriesName}</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${text}</span></div>`
       }
       html += '</div>'
@@ -1146,7 +1146,7 @@ const diskChartOption = computed(() => ({
     },
   },
   legend: {
-    data: ['磁盘已用', '磁盘总量'],
+    data: ['已使用磁碟空間', '磁碟總容量'],
     bottom: 4,
     itemWidth: 10,
     itemHeight: 8,
@@ -1156,7 +1156,7 @@ const diskChartOption = computed(() => ({
   xAxis: baseXAxisConfig.value,
   yAxis: {
     ...baseYAxisConfig.value,
-    name: '磁盘',
+    name: '磁碟',
     nameTextStyle: { color: chartThemeColors.value.textSecondary, padding: [0, 40, 0, 0] },
     axisLabel: {
       ...baseYAxisConfig.value.axisLabel,
@@ -1165,7 +1165,7 @@ const diskChartOption = computed(() => ({
   },
   series: [
     {
-      name: '磁盘已用',
+      name: '已使用磁碟空間',
       type: 'line',
       data: chartData.value.map(r => r.disk),
 
@@ -1186,7 +1186,7 @@ const diskChartOption = computed(() => ({
       },
     },
     {
-      name: '磁盘总量',
+      name: '磁碟總容量',
       type: 'line',
       data: chartData.value.map(r => r.disk_total ?? nodeInfo.value?.disk_total ?? null),
       showSymbol: false,
@@ -1218,7 +1218,7 @@ const networkChartOption = computed(() => ({
 
       for (const item of p) {
         const colorDot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${item.color};margin-right:8px;flex-shrink:0"></span>`
-        const label = item.seriesName === '下载' ? '↓ 下载' : '↑ 上传'
+        const label = item.seriesName === '下載' ? '↓ 下載' : '↑ 上傳'
         html += `<div style="display:flex;align-items:center">${colorDot}<span>${label}</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${formatBytes(item.value)}/s</span></div>`
       }
       html += '</div>'
@@ -1226,7 +1226,7 @@ const networkChartOption = computed(() => ({
     },
   },
   legend: {
-    data: ['下载', '上传'],
+    data: ['下載', '上傳'],
     bottom: 4,
     itemWidth: 12,
     itemHeight: 12,
@@ -1238,7 +1238,7 @@ const networkChartOption = computed(() => ({
   xAxis: baseXAxisConfig.value,
   yAxis: {
     ...baseYAxisConfig.value,
-    name: '速度',
+    name: '速率',
     nameTextStyle: { color: chartThemeColors.value.textSecondary, padding: [0, 40, 0, 0] },
     axisLabel: {
       ...baseYAxisConfig.value.axisLabel,
@@ -1247,7 +1247,7 @@ const networkChartOption = computed(() => ({
   },
   series: [
     {
-      name: '下载',
+      name: '下載',
       type: 'line',
       data: chartData.value.map(r => r.net_in ?? 0),
 
@@ -1255,7 +1255,7 @@ const networkChartOption = computed(() => ({
       lineStyle: { width: 1.5, color: chartColors.quinary, cap: 'round' as const },
     },
     {
-      name: '上传',
+      name: '上傳',
       type: 'line',
       data: chartData.value.map(r => r.net_out ?? 0),
 
@@ -1321,7 +1321,7 @@ const gpuChartOption = computed(() => ({
     },
   },
   legend: {
-    data: ['GPU 使用率', '显存使用率', ...gpuDeviceUsageEChartSeries.value.map(series => series.name)],
+    data: ['GPU 使用率', 'VRAM 使用率', ...gpuDeviceUsageEChartSeries.value.map(series => series.name)],
     bottom: 4,
     itemWidth: 12,
     itemHeight: 12,
@@ -1348,7 +1348,7 @@ const gpuChartOption = computed(() => ({
       lineStyle: { width: 1.5, color: chartColors.senary, cap: 'round' as const },
     },
     {
-      name: '显存使用率',
+      name: 'VRAM 使用率',
       type: 'line',
       data: chartData.value.map(r => r.gpu_memory),
       showSymbol: false,
@@ -1434,7 +1434,7 @@ const connectionsChartOption = computed(() => ({
   xAxis: baseXAxisConfig.value,
   yAxis: {
     ...baseYAxisConfig.value,
-    name: '连接数',
+    name: '連線數',
     nameTextStyle: { color: chartThemeColors.value.textSecondary, padding: [0, 40, 0, 0] },
     min: 0,
     axisLabel: {
@@ -1485,7 +1485,7 @@ const processChartOption = computed(() => ({
 
       let html = `<div style="font-weight:600;margin-bottom:6px;color:${chartThemeColors.value.textSecondary}">${timeStr}</div>`
       html += '<div style="display:flex;flex-direction:column;gap:4px">'
-      html += `<div style="display:flex;align-items:center">${colorDot}<span>进程数</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${displayValue}</span></div>`
+      html += `<div style="display:flex;align-items:center">${colorDot}<span>處理程序數</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${displayValue}</span></div>`
       html += '</div>'
       return html
     },
@@ -1494,7 +1494,7 @@ const processChartOption = computed(() => ({
   xAxis: baseXAxisConfig.value,
   yAxis: {
     ...baseYAxisConfig.value,
-    name: '进程',
+    name: '處理程序',
     nameTextStyle: { color: chartThemeColors.value.textSecondary, padding: [0, 40, 0, 0] },
     min: 0,
     axisLabel: {
@@ -1504,7 +1504,7 @@ const processChartOption = computed(() => ({
   },
   series: [
     {
-      name: '进程数',
+      name: '處理程序數',
       type: 'line',
       data: chartData.value.map(r => r.process ?? 0),
 
@@ -1596,13 +1596,13 @@ onMounted(() => {
           <Input
             v-model="customStartInput"
             type="datetime-local"
-            aria-label="负载图开始时间"
+            aria-label="效能圖表起始時間"
             class="h-8 bg-background/50 text-xs"
           />
           <Input
             v-model="customEndInput"
             type="datetime-local"
-            aria-label="负载图结束时间"
+            aria-label="效能圖表截止時間"
             class="h-8 bg-background/50 text-xs"
           />
           <Button
@@ -1613,7 +1613,7 @@ onMounted(() => {
             class="h-8 text-xs"
             @click="fetchData"
           >
-            应用
+            套用
           </Button>
         </div>
         <div v-if="customRangeError" class="text-[11px] text-orange-500">
@@ -1628,7 +1628,7 @@ onMounted(() => {
         {{ error }}
       </div>
       <div v-else-if="chartData.length === 0 && !loading" class="py-8">
-        <Empty description="暂无负载数据" />
+        <Empty description="尚無系統負載資料" />
       </div>
 
       <!-- 图表网格 -->
@@ -1636,7 +1636,7 @@ onMounted(() => {
         <!-- CPU 卡片 -->
         <CardX v-if="isChartCardEnabled('cpu')" size="small" class="bg-background/50 border-none hover:bg-background transition-all rounded-md" data-load-chart-card="cpu" :style="getChartCardStyle('cpu')">
           <template #header>
-            <MetricChartHeader title="CPU 与负载" icon="tabler:cpu" tone="rose">
+            <MetricChartHeader title="CPU 與系統負載" icon="tabler:cpu" tone="rose">
               <div v-if="latestStatus?.cpu != null" class="text-xs flex gap-0.5 items-baseline">
                 <span data-latest-cpu>{{ latestStatus.cpu.toFixed(1) }}</span>
                 <span>%</span>
@@ -1652,7 +1652,7 @@ onMounted(() => {
         <!-- 内存卡片 -->
         <CardX v-if="isChartCardEnabled('memory')" size="small" class="bg-background/50 border-none hover:bg-background transition-all rounded-md" :style="getChartCardStyle('memory')">
           <template #header>
-            <MetricChartHeader title="内存与 Swap" icon="tabler:database" tone="violet">
+            <MetricChartHeader title="記憶體與 Swap" icon="tabler:database" tone="violet">
               <div class="text-xs flex gap-1 items-baseline">
                 <template v-if="latestStatus?.ram != null">
                   <span>{{ formatBytesSplit(latestStatus.ram).value }}</span>
@@ -1677,7 +1677,7 @@ onMounted(() => {
         <!-- 磁盘卡片 -->
         <CardX v-if="isChartCardEnabled('disk')" size="small" class="bg-background/50 border-none hover:bg-background transition-all rounded-md" :style="getChartCardStyle('disk')">
           <template #header>
-            <MetricChartHeader title="磁盘" icon="tabler:device-floppy" tone="emerald" :subtitle="diskPredictionSummary">
+            <MetricChartHeader title="磁碟" icon="tabler:device-floppy" tone="emerald" :subtitle="diskPredictionSummary">
               <div class="text-xs flex gap-1 items-baseline shrink-0">
                 <template v-if="latestStatus?.disk != null">
                   <span>{{ formatBytesSplit(latestStatus.disk).value }}</span>
@@ -1701,7 +1701,7 @@ onMounted(() => {
         <!-- 网络卡片 -->
         <CardX v-if="isChartCardEnabled('network')" size="small" class="bg-background/50 border-none hover:bg-background transition-all rounded-md" :style="getChartCardStyle('network')">
           <template #header>
-            <MetricChartHeader title="实时网络" icon="tabler:network" tone="sky">
+            <MetricChartHeader title="即時網路" icon="tabler:network" tone="sky">
               <div class="text-xs flex gap-2 items-baseline">
                 <span class="flex flex-row items-center justify-center gap-0.5">
                   <Icon icon="tabler:chevron-up" width="12" height="12" />
@@ -1729,7 +1729,7 @@ onMounted(() => {
 
         <MetricSeriesChartCard
           v-if="isChartCardEnabled('traffic')"
-          title="累计与周期流量"
+          title="總量與區間傳輸量"
           icon="tabler:arrows-transfer-up-down"
           tone="sky"
           :series="trafficChartSeries"
@@ -1739,7 +1739,7 @@ onMounted(() => {
         <!-- GPU 卡片 -->
         <CardX v-if="isChartCardEnabled('gpu')" size="small" class="bg-background/50 border-none hover:bg-background transition-all rounded-md" :style="getChartCardStyle('gpu')">
           <template #header>
-            <MetricChartHeader title="GPU 利用率" icon="tabler:device-desktop-analytics" tone="cyan" :subtitle="getGpuDeviceNames(latestStatus)">
+            <MetricChartHeader title="GPU 使用率" icon="tabler:device-desktop-analytics" tone="cyan" :subtitle="getGpuDeviceNames(latestStatus)">
               <div class="text-xs flex gap-1 items-baseline shrink-0">
                 <template v-if="latestStatus?.gpu_usage != null || latestStatus?.gpu != null">
                   <span>{{ (latestStatus.gpu_usage ?? latestStatus.gpu ?? 0).toFixed(1) }}</span>
@@ -1756,7 +1756,7 @@ onMounted(() => {
 
         <MetricSeriesChartCard
           v-if="isChartCardEnabled('gpuMemory')"
-          title="GPU 显存"
+          title="GPU VRAM"
           icon="tabler:stack-2"
           tone="violet"
           :series="gpuMemoryChartSeries"
@@ -1765,7 +1765,7 @@ onMounted(() => {
 
         <MetricSeriesChartCard
           v-if="isChartCardEnabled('temperature')"
-          title="温度"
+          title="溫度"
           icon="tabler:temperature"
           tone="orange"
           :series="temperatureChartSeries"
@@ -1775,7 +1775,7 @@ onMounted(() => {
         <!-- 连接数卡片 -->
         <CardX v-if="isChartCardEnabled('connections')" size="small" class="bg-background/50 border-none hover:bg-background transition-all rounded-md" :style="getChartCardStyle('connections')">
           <template #header>
-            <MetricChartHeader title="网络连接" icon="tabler:binary-tree" tone="amber">
+            <MetricChartHeader title="網路動態" icon="tabler:binary-tree" tone="amber">
               <div class="text-xs flex gap-1 items-baseline">
                 <span>TCP: {{ latestStatus?.connections ?? '-' }}</span>
                 <span>·</span>
@@ -1791,7 +1791,7 @@ onMounted(() => {
         <!-- 进程卡片 -->
         <CardX v-if="isChartCardEnabled('process')" size="small" class="bg-background/50 border-none hover:bg-background transition-all rounded-md" :style="getChartCardStyle('process')">
           <template #header>
-            <MetricChartHeader title="进程" icon="tabler:activity" tone="slate">
+            <MetricChartHeader title="處理程序" icon="tabler:activity" tone="slate">
               <span class="text-xs">
                 {{ latestStatus?.process ?? '-' }}
               </span>
@@ -1804,7 +1804,7 @@ onMounted(() => {
 
         <MetricSeriesChartCard
           v-if="isChartCardEnabled('ping')"
-          title="Ping 延迟"
+          title="Ping 延遲"
           icon="tabler:radar"
           tone="cyan"
           :series="pingChartSeries"
@@ -1813,7 +1813,7 @@ onMounted(() => {
 
         <MetricSeriesChartCard
           v-if="isChartCardEnabled('pingLoss')"
-          title="Ping 丢包"
+          title="Ping 掉包"
           icon="tabler:cloud-exclamation"
           tone="rose"
           :series="pingLossChartSeries"

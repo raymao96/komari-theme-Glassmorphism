@@ -60,7 +60,7 @@ const presetViews = [
   { label: '12 小时', hours: 12 },
   { label: '1 天', hours: 24 },
 ]
-const CUSTOM_VIEW_LABEL = '自定义'
+const CUSTOM_VIEW_LABEL = '自訂'
 const DEFAULT_CUSTOM_RANGE_HOURS = 24
 
 // 可用视图列表
@@ -78,13 +78,13 @@ const availableViews = computed(() => {
   if (maxPreset && maxHours > maxPreset.hours) {
     const label = maxHours % 24 === 0
       ? `${Math.floor(maxHours / 24)} 天`
-      : `${maxHours} 小时`
+      : `${maxHours} 小時`
     views.push({ label, hours: maxHours })
   }
   else if (maxHours > 1 && !presetViews.some(v => v.hours === maxHours)) {
     const label = maxHours % 24 === 0
       ? `${Math.floor(maxHours / 24)} 天`
-      : `${maxHours} 小时`
+      : `${maxHours} 小時`
     views.push({ label, hours: maxHours })
   }
 
@@ -699,7 +699,7 @@ const pingChartOption = computed(() => {
     },
     yAxis: {
       type: 'value',
-      name: '延迟 (ms)',
+      name: '延遲 (ms)',
       nameTextStyle: { color: chartThemeColors.value.textSecondary },
       axisLabel: { fontSize: 11, color: chartThemeColors.value.textSecondary, formatter: '{value}' },
       axisLine: { show: false },
@@ -772,14 +772,14 @@ onBeforeUnmount(() => {
             :class="selectedTaskIds.length === tasks.length ? 'shadow-[0_0_0_2px] shadow-green-600/10 text-green-600' : ''"
             @click="showAllTasks"
           >
-            全选
+            全選
           </Button>
           <Button
             variant="ghost" size="xs" class="h-7 rounded-sm bg-background/50 hover:bg-background border-none"
             :class="!selectedTaskIds.length && 'shadow-[0_0_0_2px] shadow-green-600/10 text-green-600'"
             @click="hideAllTasks"
           >
-            全不选
+            取消全選
           </Button>
         </div>
       </Tabs>
@@ -806,7 +806,7 @@ onBeforeUnmount(() => {
             class="h-8 text-xs"
             @click="fetchRecords"
           >
-            应用
+            套用
           </Button>
         </div>
         <div v-if="customRangeError" class="text-[11px] text-orange-500">
@@ -824,7 +824,7 @@ onBeforeUnmount(() => {
         {{ error }}
       </div>
       <div v-else-if="tasks.length === 0 && !loading" class="py-8">
-        <Empty description="暂无延迟数据" />
+        <Empty description="暫無延遲數據" />
       </div>
 
       <template v-else>
@@ -884,23 +884,23 @@ onBeforeUnmount(() => {
                           <span class="font-medium">{{ Math.round(task.p99) }} ms</span>
                         </template>
                         <template v-if="task.p99_p50_ratio !== undefined">
-                          <span class="text-muted-foreground">波动率</span>
+                          <span class="text-muted-foreground">波動率</span>
                           <span class="font-medium">{{ task.p99_p50_ratio.toFixed(2) }}</span>
                         </template>
                         <template v-if="task.interval !== undefined">
-                          <span class="text-muted-foreground">间隔</span>
+                          <span class="text-muted-foreground">頻率</span>
                           <span class="font-medium">{{ task.interval }}s</span>
                         </template>
                         <template v-if="task.type">
-                          <span class="text-muted-foreground">类型</span>
+                          <span class="text-muted-foreground">類型</span>
                           <span class="font-medium">{{ task.type.toUpperCase() }}</span>
                         </template>
                         <template v-if="task.stddev !== undefined">
-                          <span class="text-muted-foreground">标准差</span>
+                          <span class="text-muted-foreground">標準差</span>
                           <span class="font-medium">{{ task.stddev.toFixed(1) }}</span>
                         </template>
                         <template v-if="task.total !== undefined">
-                          <span class="text-muted-foreground">总数</span>
+                          <span class="text-muted-foreground">總數</span>
                           <span class="font-medium">{{ task.total }}</span>
                         </template>
                         <template v-if="task.valid !== undefined">
@@ -913,14 +913,14 @@ onBeforeUnmount(() => {
                 </div>
               </TooltipProvider>
               <div class="text-xs mt-1 flex gap-1.5 items-center text-muted-foreground">
-                <span class="font-medium" title="平均延迟">
+                <span class="font-medium" title="平均延遲">
                   {{ task.avg !== undefined ? `${Math.round(task.avg)}ms` : '-' }}
                 </span>
                 <span class="opacity-60">·</span>
-                <span title="丢包率">{{ task.loss.toFixed(2) }}%{{ task.loss_approximate ? '≈' : '' }}</span>
+                <span title="掉包率">{{ task.loss.toFixed(2) }}%{{ task.loss_approximate ? '≈' : '' }}</span>
                 <template v-if="task.p99_p50_ratio !== undefined">
                   <span class="opacity-60">·</span>
-                  <span title="波动率">{{ task.p99_p50_ratio.toFixed(2) }}</span>
+                  <span title="波動率">{{ task.p99_p50_ratio.toFixed(2) }}</span>
                 </template>
               </div>
             </div>
@@ -935,7 +935,7 @@ onBeforeUnmount(() => {
                 variant="ghost" size="xs" class="h-7 rounded-sm bg-background/50 hover:bg-background border-none"
                 :class="cutPeak && 'shadow-[0_0_0_2px] shadow-green-600/10 text-green-600'" @click="cutPeak = !cutPeak"
               >
-                平滑峰值
+                平滑尖峰曲線
               </Button>
               <Tooltip
                 :open="isTouchTooltipMode ? smoothInfoTooltipOpen : undefined"
@@ -947,7 +947,7 @@ onBeforeUnmount(() => {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <span>使用 EWMA 算法平滑数据并过滤突变值</span>
+                  <span>使用 EWMA 演算法平滑資料並濾除突波</span>
                 </TooltipContent>
               </Tooltip>
             </div>

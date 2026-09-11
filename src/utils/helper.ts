@@ -9,8 +9,8 @@ const SECONDS_PER_DAY = 86400
 /** 时间单位配置（秒为单位） */
 const TIME_UNITS = [
   { value: SECONDS_PER_DAY, label: '天' },
-  { value: 3600, label: '小时' },
-  { value: 60, label: '分钟' },
+  { value: 3600, label: '小時' },
+  { value: 60, label: '分鐘' },
   { value: 1, label: '秒' },
 ] as const
 
