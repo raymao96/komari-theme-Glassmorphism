@@ -458,7 +458,7 @@ function hasRegion(region: string | null | undefined): boolean {
             @click.stop="emit('pingClick')"
           >
             <div class="flex items-center justify-between text-[11px] leading-none">
-              <span class="text-muted-foreground">延遲</span>
+              <span class="text-muted-foreground mr-1">延遲</span>
               <span class="font-medium">{{ latencyDisplay }}</span>
             </div>
             <div
@@ -487,7 +487,7 @@ function hasRegion(region: string | null | undefined): boolean {
             @click.stop="emit('pingClick')"
           >
             <div class="flex items-center justify-between text-[11px] leading-none">
-              <span class="text-muted-foreground">掉包</span>
+              <span class="text-muted-foreground mr-1">掉包</span>
               <span class="font-medium">{{ lossDisplay }}</span>
             </div>
             <div
