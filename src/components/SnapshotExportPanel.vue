@@ -439,7 +439,7 @@ async function exportCsv(): Promise<void> {
       </CardX>
       <CardX size="small" class="border-none bg-background/50">
         <div class="text-xs text-muted-foreground">
-          CPU 
+          CPU
         </div>
         <div class="mt-1 text-2xl font-bold">
           {{ totalCpuCores }}
