@@ -1,99 +1,39 @@
-# AGENTS.md
+# 專案開發規範
 
-Root-scope guide for AI agents working in `komari-theme-Glassmorphism`.
+## 技術棧與工具
 
-For the complete AI/developer manual, read [AIAGENTREADME.md](AIAGENTREADME.md). For persistent task handoff and progress tracking, read and update [AICACHE.md](AICACHE.md).
+- 本專案是 Komari Monitor 主題，產物為可匯入的主題 ZIP。
+- Vue 3、TypeScript、Vite 7；使用 Composition API 與 `<script setup lang="ts">`。
+- 套件管理器為 Bun；`package.json` 指定 Bun 1.3.14、最低 Bun 1.2.0，Node.js 需求為 `^20.19.0 || >=22.12.0`。依賴版本以 `package.json` 為準。
+- 狀態管理使用 Pinia，路由使用 Vue Router；樣式使用 Tailwind CSS v4，UI 使用 reka-ui 與 `src/components/ui/`，圖示使用 `@iconify/vue`。
+- 圖表使用 ECharts / vue-echarts；地球視覺化使用 cobe、three、globe.gl。
+- 不引入 Naive UI、UnoCSS、SCSS、`lucide-vue-next` 或其他圖示元件套件。
 
-## Snapshot
+## 架構
 
-- Updated: 2026-07-12
-- Branch: `main`
-- App: Vue 3 + Vite + reka-ui + Tailwind CSS v4 theme for Komari Monitor
-- Package manager: `bun` >= 1.2
-- Theme manifest and version source: [komari-theme.json](komari-theme.json)
+- 依循 `Component → Composable → Service → RequestManager / CacheService → API / RPC`；入口與底層傳輸程式碼依現有分層處理。
+- `src/components/`、`src/views/` 負責介面；`src/composables/` 負責響應式與生命週期；`src/services/` 負責業務與請求；`src/stores/` 管理狀態；`src/utils/` 存放工具與底層 API/RPC。
+- 樣式及設計 token 位於 `src/styles/main.css`；優先沿用現有 UI 元件與 `@/` 匯入慣例。
+- `public/images/` 的執行期檔名與路徑由程式依規則組合，變更時須同步更新引用。
 
-## Required workflow for agents
+## 指令
 
-1. Read [AIAGENTREADME.md](AIAGENTREADME.md).
-2. Read [AICACHE.md](AICACHE.md) and preserve/update useful handoff notes.
-3. Check the nearest scoped `AGENTS.md`; [src/AGENTS.md](src/AGENTS.md) overrides this file for app source.
-4. Before broad edits, identify the milestone class:
-   - M2 performance only
-   - M3 security/permissions only
-   - M4 UI/UX only
-   - M5 new feature
-   - M6 docs/tests/DX
-5. For multi-file or interruptible work, record plan/progress/results in [AICACHE.md](AICACHE.md).
-6. Validate with `bun run lint` and `bun run build` unless the change is docs-only or you explicitly record why validation was skipped.
-
-## What this repo builds
-
-This repository builds a Komari theme package, not a generic deployed web app.
-
-Release contract:
-
-- `bun run build` must output `dist/` and `komari-theme-Glassmorphism-build-<short-sha>.zip`.
-- Zip layout must stay: `komari-theme.json`, `preview.png`, `dist/`.
-- Packaged `preview.png` comes from [docs/preview.png](docs/preview.png).
-- Do not rename [komari-theme.json](komari-theme.json), [docs/preview.png](docs/preview.png), or the zip pattern.
-
-## Commands
-
-Run from repo root only:
+以下指令從專案根目錄執行：
 
 ```bash
-bun run dev
-bun run lint
-bun run build
-bun run preview
+bun install
+bun run dev          # 開發伺服器
+bun run lint         # ESLint，會自動修正並使用快取
+bun run type-check   # vue-tsc 型別檢查
+bun run build        # 型別檢查、建置與主題打包
+bun run build-only   # 僅 Vite 建置與主題打包
+bun run preview      # 預覽建置結果
 ```
 
-There is no test suite. Do not invent `bun test` / Vitest commands.
+`package.json` 另有 Playwright 視覺測試指令；執行須遵守全域禁止瀏覽器自動化的規定。原始碼變更通常執行 `bun run lint` 與 `bun run build`；純文件變更可略過。
 
-## Root map
+## 版本與打包
 
-- [AIAGENTREADME.md](AIAGENTREADME.md) — full AI/developer guide, architecture, development paths.
-- [AICACHE.md](AICACHE.md) — persistent AI work cache and handoff log.
-- [src/](src/) — Vue app source.
-- [src/AGENTS.md](src/AGENTS.md) — source-tree agent rules.
-- [docs/](docs/) — architecture, auth, cache, data flow, migration, milestones.
-- [public/images/](public/images/) — runtime image contract.
-- [.github/workflows/release-on-version-bump.yml](.github/workflows/release-on-version-bump.yml) — release automation.
-- [vite.config.ts](vite.config.ts) — Vite config, build constants, manual chunks, zip packaging.
-- [package.json](package.json) — bun scripts and dependencies; intentionally no top-level `version`.
-
-## Architecture anchor
-
-New app code must follow:
-
-```text
-Component -> Composable -> Service -> RequestManager / CacheService -> API / RPC
-```
-
-Detailed rules are in [AIAGENTREADME.md](AIAGENTREADME.md) and [src/AGENTS.md](src/AGENTS.md).
-
-Quick placement guide:
-
-- UI and view orchestration: `src/components/`, `src/views/`
-- Vue lifecycle/reactive glue: `src/composables/`
-- Business/infrastructure logic: `src/services/`
-- Shared constants: `src/constants/`
-- Pure helpers: `src/utils/`
-- Global app state: `src/stores/`
-- Low-level transport: `src/utils/api.ts`, `src/utils/rpc.ts`, `src/utils/init.ts`
-
-## Safeguards
-
-- [komari-theme.json](komari-theme.json) is the only release-version source; do not add `package.json.version`.
-- Default node card size must remain `compact`; `mini` is optional.
-- Realtime node metrics must update without page refresh; node indexes must point to Vue-reactive node objects.
-- Public home/detail routes stay public; sensitive actions/data paths perform permission checks instead of router guards.
-- Do not bypass service/cache/request layers with component-local business logic.
-- Do not reintroduce Naive UI, UnoCSS, SCSS, `lucide-vue-next`, or extra icon component packages.
-- Runtime filenames under [public/images/](public/images/) are code contracts.
-- GitHub Release verification is required after release workflow or version changes; local build success alone is not enough.
-
-## Child guides
-
-- [src/AGENTS.md](src/AGENTS.md) applies to `/src` and overrides this file for app code.
-- If future scoped guides are added, the nearest guide wins.
+- `komari-theme.json` 的 `version` 是發布版本唯一來源，不在 `package.json` 新增頂層 `version`。
+- `bun run build` 產生 `dist/` 與 `komari-theme-Glassmorphism-build-<short-sha>.zip`。
+- ZIP 頂層包含 `komari-theme.json`、`preview.png`、`dist/`；`preview.png` 來自 `docs/preview.png`。打包設定位於 `vite.config.ts`。
