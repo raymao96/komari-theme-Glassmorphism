@@ -27,10 +27,10 @@ const toneClass = computed(() => ({
 </script>
 
 <template>
-  <div class="flex min-w-0 items-center justify-between gap-3">
+  <div data-metric-chart-header class="flex h-10 min-w-0 items-center justify-between gap-3">
     <div class="flex min-w-0 items-center gap-2.5">
-      <div class="flex size-8 shrink-0 items-center justify-center rounded-md ring-1 ring-inset" :class="toneClass">
-        <Icon :icon="icon" :width="17" :height="17" />
+      <div data-metric-chart-icon class="flex size-8 shrink-0 items-center justify-center rounded-md ring-1 ring-inset" :class="toneClass">
+        <Icon :icon="icon" :width="18" :height="18" class="block size-4.5 shrink-0" />
       </div>
       <div class="min-w-0">
         <div class="truncate text-sm font-semibold sm:text-base">

@@ -2,10 +2,12 @@
 import type { NodeData } from '@/stores/nodes'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
+import NodeThreeNetPing from '@/components/NodeThreeNetPing.vue'
 import { Badge } from '@/components/ui/badge'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
 import { ProgressThin } from '@/components/ui/progress-thin'
+import { useNodeDisplayCountry } from '@/composables/useNodeGeoLookup'
 import { useNodePingDisplay } from '@/composables/useNodePingDisplay'
 import { useAppStore } from '@/stores/app'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, getStatus, getUptimeDays } from '@/utils/helper'
@@ -83,6 +85,7 @@ const diskPercentage = computed(() => getDiskPercentage(props.node))
 const diskStatus = computed(() => getStatus(diskPercentage.value))
 
 const {
+  pingStats,
   latencyRenderBars,
   lossRenderBars,
   latencyDisplay,
@@ -182,13 +185,13 @@ const remainingInfoTags = computed<RemainingInfoTag[]>(() => {
 })
 
 const customTags = computed(() => parseTags(props.node.tags).map(t => t.text))
+// 卡片国旗与地球落点共用同一份 IP 查询结果，避免两边显示不同国家。
+const displayCountryCode = useNodeDisplayCountry(() => props.node)
+const flagCode = computed(() => displayCountryCode.value || getRegionCode(props.node.region))
+const flagSrc = computed(() => flagCode.value ? `/images/flags/${flagCode.value}.svg` : '')
 
 function getRegionAltText(region: string): string {
   return getRegionDisplayName(region) || getRegionCode(region)
-}
-
-function hasRegion(region: string | null | undefined): boolean {
-  return Boolean(region?.trim())
 }
 </script>
 
@@ -249,9 +252,9 @@ function hasRegion(region: string | null | undefined): boolean {
         </button>
         <img :src="getOSImage(props.node.os)" :alt="getOSName(props.node.os)" class="size-4">
         <img
-          v-if="hasRegion(props.node.region)"
-          :src="`/images/flags/${getRegionCode(props.node.region)}.svg`"
-          :alt="getRegionAltText(props.node.region)"
+          v-if="flagSrc"
+          :src="flagSrc"
+          :alt="getRegionAltText(flagCode)"
           class="size-5 shrink-0"
         >
       </div>
@@ -448,7 +451,8 @@ function hasRegion(region: string | null | undefined): boolean {
         </div>
 
         <!-- 延迟 + 丢包 -->
-        <div class="grid grid-cols-2 gap-1.5">
+        <NodeThreeNetPing v-if="appStore.threeNetPingEnabled || appStore.threeNetPingSparkline" :node="props.node" :stats="pingStats" :enabled="props.pingEnabled" @open="emit('pingClick')" />
+        <div v-else class="grid grid-cols-2 gap-1.5">
           <button
             type="button"
             class="group/panel relative flex flex-col rounded-lg bg-slate-500/5"
@@ -509,7 +513,7 @@ function hasRegion(region: string | null | undefined): boolean {
         </div>
 
         <!-- 自定义标签 -->
-        <div v-if="customTags.length > 0" class="flex flex-wrap gap-1">
+        <div v-if="appStore.nodeTagsVisible && customTags.length > 0" class="flex flex-wrap gap-1">
           <Badge
             v-for="(tag, i) in customTags" :key="i"
             variant="outline"

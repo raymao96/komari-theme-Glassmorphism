@@ -2,6 +2,7 @@ import type { Client, NodeStatus } from '@/utils/rpc'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { gpuUsageFromStatus } from '@/utils/gpuHelper'
 import { parseNodeGroups } from '@/utils/groupHelper'
 
 /** 流量限制类型 */
@@ -67,6 +68,7 @@ export interface NodeData {
   uptime: number
   message?: string
   status_updated_at?: string
+  ping?: NodeStatus['ping']
 }
 
 /** WebSocket 连接状态 */
@@ -74,10 +76,13 @@ export type WsConnectionState = 'disconnected' | 'connecting' | 'connected' | 'r
 
 /** 状态数据（用于更新） */
 interface StatusData {
+  ping?: NodeStatus['ping']
   online: boolean
   time: string
   cpu: number
   gpu: number
+  gpu_average_usage?: NodeStatus['gpu_average_usage']
+  gpu_detailed_info?: NodeStatus['gpu_detailed_info']
   ram: number
   swap: number
   load: number
@@ -125,6 +130,16 @@ const useNodesStore = defineStore('nodes', () => {
       n.groups.forEach(group => groupSet.add(group))
     })
     return Array.from(groupSet)
+  })
+
+  // Adapted from thinkemm: count public-visible nodes, including offline nodes.
+  const groupCounts = computed(() => {
+    const counts = new Map<string, number>()
+    for (const node of visibleNodes.value) {
+      for (const group of new Set(node.groups))
+        counts.set(group, (counts.get(group) ?? 0) + 1)
+    }
+    return counts
   })
 
   function areStringArraysEqual(left: string[], right: string[]): boolean {
@@ -231,14 +246,16 @@ const useNodesStore = defineStore('nodes', () => {
    * 只会重算真正变化的字段所对应的视图；未变化的字段连依赖都不会触发。
    */
   function applyStatus(node: NodeData, status: StatusData): void {
+    node.ping = status.ping
     if (node.online !== status.online)
       node.online = status.online
     if (node.time !== status.time)
       node.time = status.time
     if (node.cpu !== status.cpu)
       node.cpu = status.cpu
-    if (node.gpu !== status.gpu)
-      node.gpu = status.gpu
+    const gpu = gpuUsageFromStatus(status)
+    if (node.gpu !== gpu)
+      node.gpu = gpu
     if (node.ram !== status.ram)
       node.ram = status.ram
     if (node.swap !== status.swap)
@@ -484,6 +501,7 @@ const useNodesStore = defineStore('nodes', () => {
     onlineCount,
     totalCount,
     groups,
+    groupCounts,
     nodesByUuid,
     visibleNodesByUuid,
     // 方法

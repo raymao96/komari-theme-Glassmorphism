@@ -352,7 +352,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
         break
       }
       case 'tags': {
-        if (!appStore.nodeListCustomTagsVisible)
+        if (!appStore.nodeTagsVisible || !appStore.nodeListCustomTagsVisible)
           break
 
         parseTags(node.tags).forEach((tag, index) => {

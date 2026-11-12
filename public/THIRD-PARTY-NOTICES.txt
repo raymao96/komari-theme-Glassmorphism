@@ -1,0 +1,58 @@
+Fork contributions incorporated into Komari Glassmorphism
+
+Source projects (MIT):
+- towersip / komari-theme-Glassmorphism
+  https://github.com/towersip/komari-theme-Glassmorphism
+  Snapshot: a41270e460ee003e33f25091e8f3b3a950675662
+  SVG sparklines, period inspection, task ID bindings and safe-area layout ideas.
+- thinkemm / komari-theme-Glassmorphism
+  https://github.com/thinkemm/komari-theme-Glassmorphism
+  Snapshot: f45aa317086aa10587b3f182170ec6eee1e15011
+  Public task cache, related request cancellation and reactive Ping status.
+- VoyagerProbe / Glassmorphism-Plus
+  https://github.com/VoyagerProbe/Glassmorphism-Plus
+  Snapshot: fa182566bb1978f88d362fe0f7345d1a4b6f52bc
+  Escaped tooltip text, unique legends, gap-preserving display EWMA;
+  shared refresh scheduling and mobile layout ideas adapted to this theme.
+
+- pwremilk / komari-theme-Glassmorphism-custom
+  https://github.com/pwremilk/komari-theme-Glassmorphism-custom
+  Snapshot: f826ecd956848d12082cff593f7194f7ed26a6ac
+  WebGL availability fallback, extended to initialization/context-loss recovery.
+- 3560912451zz-stack / komari-theme-Glassmorphism
+  https://github.com/3560912451zz-stack/komari-theme-Glassmorphism
+  Snapshot: 3aacbda95671297e7b42c30b3a76d5e9d0bf5ea2
+  Public-IP filtering, zero-coordinate rejection and stale-result protection.
+- casiuna / Glassmorphism-Enhanced
+  https://github.com/casiuna/Glassmorphism-Enhanced
+  Snapshot: 3bb76d9fd6f86d9fe56845b12922ee75866f2ed3
+  IPv4-to-IPv6 city lookup fallback.
+- zfloong / komari-theme-Glassmorphism
+  https://github.com/zfloong/komari-theme-Glassmorphism
+  Snapshot: d6ccddbd4b619f83bdac2520bd22a3bf97f58100
+  Retention-aware 7/15/30-day Ping presets.
+
+All source licenses carry the following copyright and permission notice,
+which is retained verbatim below.
+
+MIT License
+
+Copyright (c) 2025 Tony Liu (tonyliuzj, tony-liu.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
