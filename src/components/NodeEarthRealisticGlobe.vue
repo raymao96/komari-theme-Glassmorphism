@@ -14,6 +14,7 @@ import { useAppStore } from '@/stores/app'
 const props = defineProps<{
   nodes?: NodeData[]
 }>()
+const emit = defineEmits<{ renderError: [] }>()
 
 const EARTH_DAY_TEXTURE = '/images/earth/earth-blue-marble.jpg'
 const EARTH_NIGHT_TEXTURE = '/images/earth/earth-night.jpg'
@@ -210,6 +211,11 @@ async function startGlobe() {
       .htmlTransitionDuration(500)
 
     const renderer = globe.renderer()
+    renderer.domElement.addEventListener('webglcontextlost', (event) => {
+      event.preventDefault()
+      if (!destroyed)
+        emit('renderError')
+    }, { once: true })
     renderer.setClearColor(0x000000, 0)
     renderer.domElement.style.background = 'transparent'
 
@@ -243,6 +249,11 @@ async function startGlobe() {
     resetPointOfView(0)
     if (!shouldRender.value)
       globe.pauseAnimation()
+  }
+  catch {
+    stopGlobe()
+    if (!destroyed)
+      emit('renderError')
   }
   finally {
     loadingGlobe = false

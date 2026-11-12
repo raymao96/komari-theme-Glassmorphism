@@ -1,6 +1,7 @@
 import type { PingRecord, PingTaskInfo, StatusRecord } from '@/utils/rpc'
 import { requestManager } from '@/services/request.service'
 import { ApiError, getSharedApi } from '@/utils/api'
+import { gpuUsageFromStatus } from '@/utils/gpuHelper'
 import { getSharedRpc, RpcError } from '@/utils/rpc'
 
 function numberOrZero(value: unknown): number {
@@ -70,6 +71,7 @@ export function abortNodeLoadRecords(uuid: string, hours: number, maxCount?: num
 
 export function abortPingRecords(hours: number, maxCount?: number, uuid?: string): void {
   requestManager.abort(getPingRecordsRequestKey(hours, maxCount, uuid))
+  requestManager.abort(`${getPingRecordsRequestKey(hours, maxCount, uuid)}:tasks`)
 }
 
 export function normalizeStatusRecord(record: Partial<StatusRecord>): StatusRecord | null {
@@ -80,7 +82,9 @@ export function normalizeStatusRecord(record: Partial<StatusRecord>): StatusReco
     client: record.client,
     time: record.time,
     cpu: numberOrZero(record.cpu),
-    gpu: numberOrZero(record.gpu),
+    gpu: gpuUsageFromStatus(record),
+    gpu_average_usage: gpuUsageFromStatus(record),
+    gpu_detailed_info: record.gpu_detailed_info,
     ram: numberOrZero(record.ram),
     ram_total: numberOrZero(record.ram_total),
     swap: numberOrZero(record.swap),

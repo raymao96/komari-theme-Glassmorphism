@@ -5,14 +5,16 @@ import type { CurrencyCode, ExchangeRateSource } from '@/utils/financeHelper'
 import type { TopNodeMetric } from '@/utils/nodeMetricsHelper'
 import { Icon } from '@iconify/vue'
 import { useNow } from '@vueuse/core'
-import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import NodeEarthGlobe from '@/components/NodeEarthGlobe.vue'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
+import { ensureNodeGeoLookup, resetNodeGeoLookup } from '@/composables/useNodeGeoLookup'
 import { UI_CONFIG } from '@/constants/ui'
 import { useAppStore } from '@/stores/app'
 import { useNodesStore } from '@/stores/nodes'
 import * as financeHelper from '@/utils/financeHelper'
+import { gpuUsageFromStatus } from '@/utils/gpuHelper'
 import { formatBytesPerSecondSplit, formatBytesSplit } from '@/utils/helper'
 import {
   getConnectionCount,
@@ -249,11 +251,12 @@ const onlineStats = computed<OnlineStats>(() => {
     stats.uploadPeakNode = updateTopMetric(stats.uploadPeakNode, node, node.net_out || 0)
     stats.downloadPeakNode = updateTopMetric(stats.downloadPeakNode, node, node.net_in || 0)
     stats.connectionPeakNode = updateTopMetric(stats.connectionPeakNode, node, getConnectionCount(node))
-    const hasGpu = Boolean(node.gpu_name?.trim()) || (node.gpu || 0) > 0
+    const gpu = gpuUsageFromStatus(node)
+    const hasGpu = Boolean(node.gpu_name?.trim()) || gpu > 0
     if (hasGpu) {
-      stats.totalGpu += node.gpu || 0
+      stats.totalGpu += gpu
       stats.gpuNodeCount += 1
-      stats.gpuPeakNode = updateTopMetric(stats.gpuPeakNode, node, node.gpu || 0)
+      stats.gpuPeakNode = updateTopMetric(stats.gpuPeakNode, node, gpu)
     }
     if (isHighLoadNode(node, appStore.homeHighLoadThreshold))
       stats.highLoadNodes.push(node)
@@ -700,7 +703,20 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
 
 const visibleCards = computed(() => appStore.generalCardOrder.map(getCardDefinition))
 const showEarth = computed(() => !appStore.hideEarth)
-const isTiledEarth = computed(() => showEarth.value && appStore.earthRenderer === 'tiled')
+
+// 无论地球是否显示都补齐IP 地理位置，保证节点卡片国旗与地球落点始终同源。
+watch(
+  [() => nodesStore.visibleNodes, () => appStore.ipGeoProviderUrls, () => appStore.privateFeaturesAllowed],
+  () => {
+    if (appStore.privateFeaturesAllowed)
+      void ensureNodeGeoLookup(appStore, nodesStore.visibleNodes)
+    else
+      resetNodeGeoLookup()
+  },
+  { immediate: true, deep: true },
+)
+const activeEarthRenderer = ref(appStore.earthRenderer)
+const isTiledEarth = computed(() => showEarth.value && activeEarthRenderer.value === 'tiled')
 const shouldRenderHeader = computed(() => showEarth.value || visibleCards.value.length > 0)
 const hasExtraCards = computed(() => visibleCards.value.length > 6)
 const wrapperClass = computed(() => {
@@ -812,6 +828,7 @@ onMounted(async () => {
       v-if="showEarth"
       :nodes="globeNodes"
       :class="earthClass"
+      @renderer-change="activeEarthRenderer = $event"
     />
 
     <div v-if="visibleCards.length > 0" :class="cardGridClass">

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
 import { Empty } from '@/components/ui/empty'
+import { Select } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useNodeProviderMetadata } from '@/composables/useNodeProviderMetadata'
 import { LOAD_RECORD_MAX_COUNT } from '@/constants/load'
@@ -18,6 +19,7 @@ import { useNodesStore } from '@/stores/nodes'
 import { formatCityNameZh } from '@/utils/cityNameHelper'
 import { getCpuBenchmarkRating, getPassMarkCpuLookupUrl } from '@/utils/cpuBenchmark'
 import * as financeHelper from '@/utils/financeHelper'
+import { gpuUsageFromStatus } from '@/utils/gpuHelper'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatUptimeWithFormat } from '@/utils/helper'
 import { getOSImage, getOSName } from '@/utils/osImageHelper'
 import { getRegionCode, getRegionDisplayName } from '@/utils/regionHelper'
@@ -41,6 +43,7 @@ const peakNetIn = ref(0)
 const activeDetailSection = ref<'overview' | 'load' | 'ping'>('overview')
 const data = computed(() => nodesStore.visibleNodesByUuid.get(String(route.params.id)))
 const detailNodes = computed(() => nodesStore.visibleNodes)
+const detailNodeOptions = computed(() => detailNodes.value.map(node => ({ value: node.uuid, label: node.name })))
 const detailNodeIndex = computed(() => detailNodes.value.findIndex(node => node.uuid === data.value?.uuid))
 const isFavoriteNode = computed(() => data.value ? appStore.isFavoriteNode(data.value.uuid) : false)
 
@@ -134,8 +137,7 @@ function navigateDetailNode(offset: number): void {
     void router.push({ name: 'instance-detail', params: { id: target.uuid } })
 }
 
-function selectDetailNode(event: Event): void {
-  const uuid = (event.target as HTMLSelectElement).value
+function selectDetailNode(uuid: string): void {
   if (uuid && uuid !== data.value?.uuid)
     void router.push({ name: 'instance-detail', params: { id: uuid } })
 }
@@ -340,8 +342,9 @@ function getDetailMetricCard(key: DetailMetricCardKey): MetricCard {
     case 'cpuUsage':
       return { key, label: 'CPU 使用率', value: (node?.cpu ?? 0).toFixed(1), unit: '%', icon: 'tabler:cpu' }
     case 'gpuUsage': {
-      const hasGpu = Boolean(node?.gpu_name?.trim()) || (node?.gpu ?? 0) > 0
-      return { key, label: 'GPU 使用率', value: hasGpu ? (node?.gpu ?? 0).toFixed(1) : '-', unit: hasGpu ? '%' : undefined, icon: 'tabler:device-desktop-analytics', tooltip: node?.gpu_name?.trim() || undefined }
+      const gpu = gpuUsageFromStatus(node)
+      const hasGpu = Boolean(node?.gpu_name?.trim()) || gpu > 0
+      return { key, label: 'GPU 使用率', value: hasGpu ? gpu.toFixed(1) : '-', unit: hasGpu ? '%' : undefined, icon: 'tabler:device-desktop-analytics', tooltip: node?.gpu_name?.trim() || undefined }
     }
     case 'memoryUsage':
       return { key, label: '記憶體使用率', value: memoryUsage === null ? '-' : memoryUsage.toFixed(1), unit: memoryUsage === null ? undefined : '%', icon: 'icon-park-outline:memory', tooltip: `${formatBytes(node?.ram ?? 0)} / ${formatBytes(node?.mem_total ?? 0)}` }
@@ -489,8 +492,8 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
 
     <template v-else>
       <!-- 顶部导航 -->
-      <div class="px-4 flex flex-wrap gap-2 items-center sm:gap-4">
-        <Button variant="ghost" size="icon-sm" class="bg-background/50 hover:bg-background" aria-label="回到首頁" @click="router.push('/')">
+      <div class="px-4 grid grid-cols-[auto_minmax(0,1fr)_auto] gap-2 items-center sm:flex sm:flex-wrap sm:gap-4">
+        <Button variant="ghost" size="icon-sm" class="shrink-0 bg-background/50 hover:bg-background" aria-label="回到首頁" @click="router.push('/')">
           <Icon icon="tabler:arrow-left" :width="16" :height="16" />
         </Button>
         <div class="min-w-0 text-lg font-bold flex gap-2 items-center">
@@ -501,7 +504,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
           {{ data.online ? '上線' : '離線' }}
         </Badge>
         <!-- 节点自定义标签 -->
-        <div v-if="customTags.length" class="flex flex-wrap gap-1">
+        <div v-if="appStore.nodeTagsVisible && customTags.length" class="col-span-3 flex flex-wrap gap-1 sm:order-none">
           <Badge
             v-for="(tag, i) in customTags" :key="i" variant="outline"
             class="!text-[11px] rounded text-muted-foreground border-muted-foreground/15 px-1.5 py-0"
@@ -509,7 +512,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
             {{ tag }}
           </Badge>
         </div>
-        <div class="ml-auto flex h-8 shrink-0 items-center gap-1 rounded-md bg-background/50 p-0.5 backdrop-blur-xs">
+        <div class="col-span-3 flex h-8 shrink-0 items-center justify-end gap-1 rounded-md bg-background/50 p-0.5 backdrop-blur-xs sm:ml-auto">
           <Button
             variant="ghost" size="icon-sm"
             class="size-7 rounded-sm shadow-none"
@@ -528,16 +531,14 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
           >
             <Icon icon="tabler:chevron-left" :width="14" :height="14" />
           </Button>
-          <select
-            :value="data.uuid"
-            class="h-7 max-w-34 rounded-sm border-0 bg-transparent px-1 text-xs text-foreground outline-none sm:max-w-48"
+          <Select
+            :model-value="data.uuid"
+            :options="detailNodeOptions"
             aria-label="切換伺服器"
-            @change="selectDetailNode"
-          >
-            <option v-for="node in detailNodes" :key="node.uuid" :value="node.uuid">
-              {{ node.name }}
-            </option>
-          </select>
+            class="h-7 max-w-34 rounded-sm border-0 bg-transparent px-1 text-xs shadow-none sm:max-w-48"
+            content-class="max-w-72"
+            @update:model-value="selectDetailNode"
+          />
           <Button
             variant="ghost" size="icon-sm" class="size-7 rounded-sm shadow-none"
             :disabled="detailNodes.length < 2"
