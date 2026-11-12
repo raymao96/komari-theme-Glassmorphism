@@ -27,13 +27,29 @@ export interface VisualFixtureOptions {
   missingCpuMetricHistory?: boolean
   pingTaskOrdering?: boolean
   generalCardKeys?: string[]
+  fullChartDashboard?: boolean
+  threeNetPing?: boolean
+  threeNetSparkline?: boolean
+  themeSettingsOverrides?: Record<string, unknown>
+  threeNetTaskIds?: string
+  threeNetNodeBindings?: string
+  livePingOffset?: number
+  livePingLoss?: number
+  pingGaps?: boolean
+  duplicateTaskNames?: boolean
+  groupNodeCount?: boolean
+  hiddenFirstNode?: boolean
+  loggedIn?: boolean
+  publicNodeIps?: boolean
+  nodeIpOverrides?: Record<string, { ipv4: string, ipv6: string, region: string }>
+  pingRetentionHours?: number
 }
 
 function uuidFor(index: number): string {
   return `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`
 }
 
-function buildClients(freePriceNode = false, expiryThresholds = false) {
+function buildClients(freePriceNode = false, expiryThresholds = false, multipleGroups = false) {
   return Object.fromEntries(Array.from({ length: 12 }, (_, index) => {
     const fixture = REGION_FIXTURES[index % REGION_FIXTURES.length]
     const uuid = uuidFor(index)
@@ -66,7 +82,7 @@ function buildClients(freePriceNode = false, expiryThresholds = false) {
         : expiryThresholds && index === 1
           ? '2026-08-04T12:00:00.000Z'
           : index === 6 ? '2026-08-02T00:00:00.000Z' : '2027-07-25T00:00:00.000Z',
-      group: index < 6 ? '生产' : '测试,边缘',
+      group: index < 6 ? '生产' : multipleGroups ? '测试;边缘' : '测试,边缘',
       tags: index % 2 === 0 ? 'core<jade>,visual<blue>' : 'edge<orange>',
       hidden: false,
       traffic_limit: index === 6 ? 2 * TIB : 20 * TIB,
@@ -224,7 +240,9 @@ function buildMetricResponse(
         tags: task ? { task_id: String(task.id), task_name: task.name } : {},
         points: points.map(point => ({
           time: point.time,
-          value: metricValue(key, point.index) + (task?.id ?? 0),
+          value: options.pingGaps && key === 'ping.latency_ms' && point.index >= 18 && point.index <= 30
+            ? null
+            : key === 'ping.loss' && options.threeNetPing ? 0.015 : metricValue(key, point.index) + (task?.id ?? 0),
         })),
       }))
     })
@@ -248,6 +266,10 @@ async function handleRpc(route: Route, clientFixtures = clients, options: Visual
   const metricPingTasks = options.pingTaskOrdering
     ? [pingTasks[2]!, pingTasks[0]!, pingTasks[1]!]
     : pingTasks
+  if (options.duplicateTaskNames) {
+    pingTasks[0]!.name = '<img src=x onerror="window.__pingInjected=1">同名'
+    pingTasks[1]!.name = pingTasks[0]!.name
+  }
   const pingRecords = pingTasks.flatMap(task => Array.from({ length: 48 }, (_, index) => ({
     task_id: task.id,
     client: uuid,
@@ -264,7 +286,20 @@ async function handleRpc(route: Route, clientFixtures = clients, options: Visual
       result = clientFixtures
       break
     case 'common:getNodesLatestStatus':
-      result = statuses
+      result = options.threeNetPing
+        ? Object.fromEntries(Object.entries(statuses).map(([id, status]) => [id, {
+            ...status,
+            ping: Object.fromEntries(pingTasks.map(task => [task.id, {
+              name: task.name,
+              latest: status.online ? 40 + task.id + (options.livePingOffset ?? 0) : -1,
+              avg: 80 + task.id,
+              min: 10,
+              max: 200,
+              tail: 100,
+              loss: options.livePingLoss ?? (status.online ? 1.5 : 100),
+            }])),
+          }]))
+        : statuses
       break
     case 'common:getNodeRecentStatus':
       result = { count: 48, records: buildRecords(uuid) }
@@ -304,9 +339,9 @@ async function handleRpc(route: Route, clientFixtures = clients, options: Visual
               name: task.name,
               interval: task.interval,
               tags: { task_id: String(task.id), task_name: task.name },
-              total: 48,
-              valid: 48,
-              loss: 0,
+              total: options.threeNetPing ? 200 : 48,
+              valid: options.threeNetPing ? 197 : 48,
+              loss: options.threeNetPing ? 1.5 : 0,
               loss_approximate: false,
               min: 40 + task.id,
               max: 120 + task.id,
@@ -321,7 +356,7 @@ async function handleRpc(route: Route, clientFixtures = clients, options: Visual
       result = Object.values(clientFixtures)
       break
     case 'public:getMe':
-      result = { logged_in: false }
+      result = { logged_in: options.loggedIn ?? false }
       break
     case 'public:getVersion':
     case 'common:getBackendVersion':
@@ -339,12 +374,20 @@ async function handleRpc(route: Route, clientFixtures = clients, options: Visual
 }
 
 export async function installKomariFixture(page: Page, options: VisualFixtureOptions = {}): Promise<void> {
-  const clientFixtures = options.freePriceNode || options.expiryThresholds
-    ? buildClients(options.freePriceNode, options.expiryThresholds)
-    : clients
+  const clientFixtures = buildClients(options.freePriceNode, options.expiryThresholds, options.groupNodeCount)
+  if (options.hiddenFirstNode)
+    clientFixtures[uuidFor(0)]!.hidden = true
+  if (options.publicNodeIps) {
+    clientFixtures[uuidFor(0)]!.ipv4 = '8.8.8.8'
+    clientFixtures[uuidFor(0)]!.ipv6 = '2606:4700::1111'
+  }
+  for (const [uuid, values] of Object.entries(options.nodeIpOverrides ?? {})) {
+    if (clientFixtures[uuid])
+      Object.assign(clientFixtures[uuid], values)
+  }
   const settings = {
     themeMode: options.dark ? 'dark' : 'light',
-    dataUpdateInterval: 60,
+    dataUpdateInterval: options.threeNetPing ? 3 : 60,
     rpcTransportMode: 'http',
     defaultViewMode: options.viewMode ?? 'card',
     nodeCardSize: options.nodeCardSize ?? 'compact',
@@ -359,6 +402,16 @@ export async function installKomariFixture(page: Page, options: VisualFixtureOpt
     homeQuickControlsEnabled: true,
     homeQuickControlPreset: '完整',
     homeToolsEnabled: true,
+    groupNodeCountEnabled: options.groupNodeCount ?? false,
+    ...(options.fullChartDashboard ? { chartDashboardPreset: '完整', gpuChartEnabled: true } : {}),
+    ...(options.threeNetPing
+      ? {
+          threeNetPingEnabled: true,
+          threeNetPingSparkline: options.threeNetSparkline ?? true,
+          threeNetPingTaskIds: options.threeNetTaskIds ?? '[20,10,30]',
+          threeNetPingNodeTaskBindings: options.threeNetNodeBindings ?? '{}',
+        }
+      : {}),
     generalCardPreset: '自定义',
     generalCardKeys: (options.generalCardKeys ?? (
       options.earthRenderer === 'tiled'
@@ -399,17 +452,17 @@ export async function installKomariFixture(page: Page, options: VisualFixtureOpt
         private_site: false,
         record_enabled: true,
         record_preserve_time: 720,
-        ping_record_preserve_time: 720,
+        ping_record_preserve_time: options.pingRetentionHours ?? 720,
         sitename: 'Komari Visual Lab',
         theme: 'Glassmorphism',
-        theme_settings: settings,
+        theme_settings: { ...settings, ...options.themeSettingsOverrides },
         visitor_audit_enabled: false,
       },
     }),
   }))
   await page.route('**/api/me', route => route.fulfill({
     contentType: 'application/json',
-    body: JSON.stringify({ logged_in: false, username: 'visual-guest' }),
+    body: JSON.stringify({ logged_in: options.loggedIn ?? false, username: 'visual-guest' }),
   }))
   await page.route('**/api/version', route => route.fulfill({
     contentType: 'application/json',

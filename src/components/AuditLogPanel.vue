@@ -493,18 +493,20 @@ onMounted(() => {
                 </div>
               </td>
               <td class="px-2 py-3 text-xs">
-                <template v-if="row.visitor">
-                  <div class="break-all font-mono text-[11px]">
-                    {{ row.visitor.path || '-' }}
-                  </div>
-                  <div v-if="row.visitor.target" class="mt-1 break-all text-muted-foreground">
-                    目標：{{ row.visitor.target }}
-                  </div>
-                  <div v-if="row.visitor.route" class="mt-1 text-[10px] text-muted-foreground">
-                    路由：{{ row.visitor.route }}
-                  </div>
-                </template>
-                <span v-else class="whitespace-pre-wrap break-words">{{ row.log.message || '-' }}</span>
+                <div class="line-clamp-3">
+                  <template v-if="row.visitor">
+                    <div class="break-all font-mono text-[11px]">
+                      {{ row.visitor.path || '-' }}
+                    </div>
+                    <div v-if="row.visitor.target" class="mt-1 break-all text-muted-foreground">
+                      目標：{{ row.visitor.target }}
+                    </div>
+                    <div v-if="row.visitor.route" class="mt-1 text-[10px] text-muted-foreground">
+                      路由：{{ row.visitor.route }}
+                    </div>
+                  </template>
+                  <span v-else class="whitespace-pre-wrap break-words">{{ row.log.message || '-' }}</span>
+                </div>
               </td>
               <td class="px-2 py-3 text-xs">
                 <template v-if="row.visitor">

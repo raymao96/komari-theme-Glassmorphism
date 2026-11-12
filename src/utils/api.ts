@@ -344,7 +344,7 @@ export class KomariApi {
   /**
    * 发送 POST 请求
    */
-  private async post<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+  private async post<T>(path: string, body?: unknown, signal?: AbortSignal, allowEmptySuccess = false): Promise<T> {
     const url = `${this.baseUrl}${path}`
 
     const controller = new AbortController()
@@ -365,6 +365,10 @@ export class KomariApi {
       clearTimeout(timeoutId)
 
       const result = await safeJson(response)
+      // Theme settings may return 204 or a success envelope without data.
+      // Keep strict response validation for all existing callers.
+      if (allowEmptySuccess && response.ok && (result === null || (typeof result === 'object' && result !== null && 'status' in result && result.status === 'success')))
+        return undefined as T
       if (!result || typeof result !== 'object')
         throw new ApiError(response.ok ? 'Invalid API response' : `HTTP error: ${response.status}`, 'error', response.status)
 
@@ -408,8 +412,13 @@ export class KomariApi {
   /**
    * 获取站点的公开设置属性
    */
-  async getPublicSettings(): Promise<PublicSettings> {
-    return this.get<PublicSettings>('/public')
+  async getPublicSettings(signal?: AbortSignal): Promise<PublicSettings> {
+    return this.get<PublicSettings>('/public', undefined, signal)
+  }
+
+  /** Save managed theme settings with backend session authorization. */
+  async saveThemeSettings(theme: string, settings: Record<string, unknown>, signal?: AbortSignal): Promise<void> {
+    await this.post(`/admin/theme/settings?theme=${encodeURIComponent(theme)}`, settings, signal, true)
   }
 
   /**

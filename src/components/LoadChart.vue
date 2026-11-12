@@ -17,13 +17,16 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { loadNodeLoadRecords, useNodeLoadStats } from '@/composables/useNodeLoadStats'
+import { METRIC_CHART_GRID, METRIC_CHART_LEGEND } from '@/constants/chart'
 import { LOAD_RECORD_MAX_COUNT } from '@/constants/load'
 import { loadMetricDefinitions, loadPublicPingTasks, queryMetrics } from '@/services/metrics.service'
 import { useAppStore } from '@/stores/app'
 import { useNodesStore } from '@/stores/nodes'
-import { getChartSeriesPalette, getLoadChartPalette } from '@/utils/chartPalette'
+import { getChartSeriesPalette, getLoadChartPalette, getMetricChartTheme } from '@/utils/chartPalette'
+import { gpuUsageFromStatus } from '@/utils/gpuHelper'
 import { formatBytes, formatBytesSplit } from '@/utils/helper'
 import { comparePingTaskOrder, createPingTaskOrderMap, metricTags, normalizeMetricSeriesList } from '@/utils/metricSeries'
+import { escapePingTooltip, pingChartTaskLabels } from '@/utils/pingChartPresentation'
 import { fillMissingTimePoints } from '@/utils/recordHelper'
 import { getSharedRpc } from '@/utils/rpc'
 import '@/utils/echarts' // 共享 ECharts 配置
@@ -100,16 +103,7 @@ interface CustomRange {
 }
 
 // 图表主题相关颜色
-const chartThemeColors = computed(() => ({
-  text: isDark.value ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.85)',
-  textSecondary: isDark.value ? 'rgba(255, 255, 255, 0.55)' : 'rgba(0, 0, 0, 0.55)',
-  textTertiary: isDark.value ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.35)',
-  borderColor: isDark.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-  splitLineColor: isDark.value ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)',
-  tooltipBg: isDark.value ? 'rgba(40, 40, 40, 0.95)' : 'rgba(255, 255, 255, 0.8)',
-  tooltipShadow: isDark.value ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.06)',
-  crosshairColor: isDark.value ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)',
-}))
+const chartThemeColors = computed(() => getMetricChartTheme(isDark.value))
 
 // 通用 Tooltip 配置
 const baseTooltipConfig = computed(() => ({
@@ -141,9 +135,11 @@ const baseTooltipConfig = computed(() => ({
   },
 }))
 
-// 图表边距配置
-const chartMargin = { top: 30, right: 24, bottom: 32, left: 56 }
-const chartMarginWithLegend = { top: 30, right: 24, bottom: 52, left: 56 }
+const baseLegendConfig = computed(() => ({
+  ...METRIC_CHART_LEGEND,
+  textStyle: { ...METRIC_CHART_LEGEND.textStyle, color: chartThemeColors.value.textSecondary },
+  pageTextStyle: { color: chartThemeColors.value.textSecondary },
+}))
 
 // 视图选项
 const presetViews = [
@@ -288,16 +284,24 @@ function gpuDetailsFromStatus(record: StatusRecord): RecordFormat['gpu_detailed'
   return details
 }
 
+function averageGpuMemoryPercent(details: NonNullable<RecordFormat['gpu_detailed']>): number | null {
+  const percents = Object.values(details)
+    .map(detail => detail.memory)
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+  return percents.length ? percents.reduce((sum, value) => sum + value, 0) / percents.length : null
+}
+
 function statusToRecordFormat(records: StatusRecord[]): RecordFormat[] {
   return records.map((r) => {
     const gpuDetailed = gpuDetailsFromStatus(r)
+    const gpu = metricValue(gpuUsageFromStatus(r))
     return {
       client: r.client,
       time: r.time,
       cpu: metricValue(r.cpu),
-      gpu: metricValue(r.gpu_average_usage ?? r.gpu),
-      gpu_usage: metricValue(r.gpu_average_usage ?? r.gpu),
-      gpu_memory: null,
+      gpu,
+      gpu_usage: gpu,
+      gpu_memory: gpuDetailed ? averageGpuMemoryPercent(gpuDetailed) : null,
       gpu_detailed: gpuDetailed,
       ram: metricValue(r.ram),
       ram_total: metricValue(r.ram_total),
@@ -453,7 +457,6 @@ function applyMetricPoint(row: RecordFormat, key: LoadMetricKey, value: number |
       row.gpu_detailed ??= {}
       row.gpu_detailed[deviceIndex] ??= { usage: null, memory: null, temperature: null, device_index: deviceIndex, device_name: getMetricDeviceName(series) }
       row.gpu_detailed[deviceIndex].mem_used = value ?? undefined
-      row.gpu_memory = row.gpu_memory ?? value
       break
     }
     case 'gpu.memory.total': {
@@ -750,6 +753,7 @@ watchEffect(() => {
 })
 
 const pingTaskMap = computed(() => new Map(pingTasks.value.map(task => [String(task.id), task])))
+const pingTaskLabels = computed(() => pingChartTaskLabels(pingTasks.value))
 const pingTaskOrder = computed(() => createPingTaskOrderMap(pingTasks.value))
 
 function seriesHasData(series: MetricChartSeriesData): boolean {
@@ -829,7 +833,7 @@ function pingSeries(metricKey: 'ping.latency_ms' | 'ping.loss'): MetricChartSeri
     .map<MetricChartSeriesData>((series, index) => {
       const tags = metricTags(series)
       const taskId = String(tags.task_id ?? tags.task ?? '')
-      const taskName = pingTaskMap.value.get(taskId)?.name || (taskId ? `檢測項目 ${taskId}` : `Ping ${index + 1}`)
+      const taskName = pingTaskLabels.value.get(Number(taskId)) || pingTaskMap.value.get(taskId)?.name || (taskId ? `檢測項目 ${taskId}` : `Ping ${index + 1}`)
       return {
         name: taskName,
         color: metricSeriesColors[index % metricSeriesColors.length]!,
@@ -946,7 +950,8 @@ const cpuChartOption = computed(() => ({
       return html
     },
   },
-  grid: chartMargin,
+  legend: { ...baseLegendConfig.value, data: ['CPU', '負載'] },
+  grid: METRIC_CHART_GRID,
   xAxis: baseXAxisConfig.value,
   yAxis: [
     {
@@ -1048,13 +1053,10 @@ const memoryChartOption = computed(() => ({
     },
   },
   legend: {
+    ...baseLegendConfig.value,
     data: ['RAM', 'RAM 總容量', 'Swap', 'Swap 總容量'],
-    bottom: 4,
-    itemWidth: 10,
-    itemHeight: 8,
-    textStyle: { fontSize: 10, color: chartThemeColors.value.textSecondary },
   },
-  grid: chartMarginWithLegend,
+  grid: METRIC_CHART_GRID,
   xAxis: baseXAxisConfig.value,
   yAxis: {
     ...baseYAxisConfig.value,
@@ -1139,20 +1141,17 @@ const diskChartOption = computed(() => ({
       for (const item of p) {
         const colorDot = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${item.color};margin-right:8px;flex-shrink:0"></span>`
         const text = item.seriesName === '磁碟總容量' ? formatBytes(diskTotal) : `${formatBytes(diskUsed)} (${diskPercent}%)`
-        html += `<div style="display:flex;align-items:center">${colorDot}<span>${item.seriesName}</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${text}</span></div>`
+        html += `<div style="display:flex;align-items:center">${colorDot}<span>${escapePingTooltip(item.seriesName)}</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${text}</span></div>`
       }
       html += '</div>'
       return html
     },
   },
   legend: {
+    ...baseLegendConfig.value,
     data: ['已使用磁碟空間', '磁碟總容量'],
-    bottom: 4,
-    itemWidth: 10,
-    itemHeight: 8,
-    textStyle: { fontSize: 10, color: chartThemeColors.value.textSecondary },
   },
-  grid: chartMarginWithLegend,
+  grid: METRIC_CHART_GRID,
   xAxis: baseXAxisConfig.value,
   yAxis: {
     ...baseYAxisConfig.value,
@@ -1226,15 +1225,10 @@ const networkChartOption = computed(() => ({
     },
   },
   legend: {
+    ...baseLegendConfig.value,
     data: ['下載', '上傳'],
-    bottom: 4,
-    itemWidth: 12,
-    itemHeight: 12,
-    itemGap: 20,
-    icon: 'roundRect',
-    textStyle: { fontSize: 11, color: chartThemeColors.value.textSecondary },
   },
-  grid: chartMarginWithLegend,
+  grid: METRIC_CHART_GRID,
   xAxis: baseXAxisConfig.value,
   yAxis: {
     ...baseYAxisConfig.value,
@@ -1301,7 +1295,7 @@ const gpuChartOption = computed(() => ({
 
       for (const item of p) {
         const colorDot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${item.color};margin-right:8px;flex-shrink:0"></span>`
-        html += `<div style="display:flex;align-items:center">${colorDot}<span>${item.seriesName}</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${item.value?.toFixed(1) ?? '-'}%</span></div>`
+        html += `<div style="display:flex;align-items:center">${colorDot}<span>${escapePingTooltip(item.seriesName)}</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${item.value?.toFixed(1) ?? '-'}%</span></div>`
       }
 
       if (record.gpu_detailed) {
@@ -1311,7 +1305,7 @@ const gpuChartOption = computed(() => ({
           const usage = detail.usage == null ? '-' : `${detail.usage.toFixed(1)}%`
           const memory = detail.memory == null ? '-' : `${detail.memory.toFixed(1)}%`
           const temp = detail.temperature == null ? '' : ` · ${Math.round(detail.temperature)}℃`
-          html += `<div style="display:flex;align-items:center;gap:8px;color:${chartThemeColors.value.textSecondary}"><span>${name}</span><span style="margin-left:auto">${usage} / ${memory}${temp}</span></div>`
+          html += `<div style="display:flex;align-items:center;gap:8px;color:${chartThemeColors.value.textSecondary}"><span>${escapePingTooltip(name)}</span><span style="margin-left:auto">${usage} / ${memory}${temp}</span></div>`
         }
         html += '</div>'
       }
@@ -1321,15 +1315,10 @@ const gpuChartOption = computed(() => ({
     },
   },
   legend: {
+    ...baseLegendConfig.value,
     data: ['GPU 使用率', 'VRAM 使用率', ...gpuDeviceUsageEChartSeries.value.map(series => series.name)],
-    bottom: 4,
-    itemWidth: 12,
-    itemHeight: 12,
-    itemGap: 20,
-    icon: 'roundRect',
-    textStyle: { fontSize: 11, color: chartThemeColors.value.textSecondary },
   },
-  grid: chartMarginWithLegend,
+  grid: METRIC_CHART_GRID,
   xAxis: baseXAxisConfig.value,
   yAxis: {
     ...baseYAxisConfig.value,
@@ -1415,22 +1404,17 @@ const connectionsChartOption = computed(() => ({
       for (const item of p) {
         const colorDot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${item.color};margin-right:8px;flex-shrink:0"></span>`
         const displayValue = item.value != null ? Math.round(item.value) : '-'
-        html += `<div style="display:flex;align-items:center">${colorDot}<span>${item.seriesName}</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${displayValue}</span></div>`
+        html += `<div style="display:flex;align-items:center">${colorDot}<span>${escapePingTooltip(item.seriesName)}</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${displayValue}</span></div>`
       }
       html += '</div>'
       return html
     },
   },
   legend: {
+    ...baseLegendConfig.value,
     data: ['TCP', 'UDP'],
-    bottom: 4,
-    itemWidth: 12,
-    itemHeight: 12,
-    itemGap: 20,
-    icon: 'roundRect',
-    textStyle: { fontSize: 11, color: chartThemeColors.value.textSecondary },
   },
-  grid: chartMarginWithLegend,
+  grid: METRIC_CHART_GRID,
   xAxis: baseXAxisConfig.value,
   yAxis: {
     ...baseYAxisConfig.value,
@@ -1490,7 +1474,8 @@ const processChartOption = computed(() => ({
       return html
     },
   },
-  grid: chartMargin,
+  legend: { ...baseLegendConfig.value, data: ['處理程序數'] },
+  grid: METRIC_CHART_GRID,
   xAxis: baseXAxisConfig.value,
   yAxis: {
     ...baseYAxisConfig.value,
@@ -1577,7 +1562,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div data-load-chart-dashboard class="flex flex-col gap-4">
     <!-- 时间选择器 -->
     <div class="flex flex-col items-center gap-2">
       <Tabs v-model="selectedView" class="w-full items-center">

@@ -5,6 +5,7 @@ import { computed, onScopeDispose, ref, shallowRef, toValue, watch } from 'vue'
 import { PING_RECORD_MAX_COUNT } from '@/constants/load'
 import { abortPingRecords, loadPingRecords } from '@/services/history.service'
 import { abortPingMetricStats, abortQueryMetrics, loadPingMetricStats, queryMetrics } from '@/services/metrics.service'
+import { subscribeVisibleRefresh } from '@/services/visibleRefresh.service'
 import { isPingMetric, normalizeMetricSeriesList, PING_LATENCY_METRIC, PING_LOSS_METRIC, pingTaskId } from '@/utils/metricSeries'
 
 export interface NodePingHistoryPoint {
@@ -29,6 +30,7 @@ interface PingRecord {
 }
 
 interface MetricLossPoint {
+  taskId: number
   time: string
   value: number
   count: number
@@ -52,7 +54,7 @@ interface SharedPingRecordsEntry {
   loading: ReturnType<typeof ref<boolean>>
   error: ReturnType<typeof ref<string | null>>
   promise: Promise<void> | null
-  refreshTimer: ReturnType<typeof setInterval> | null
+  refreshTimer: (() => void) | null
   subscribers: number
   lastFetchedAt: number
 }
@@ -253,23 +255,6 @@ function normalizeTaskId(taskId: string): number {
   return Math.abs(hash)
 }
 
-function buildMetricRecordsByClient(nodeUuid: string, stats: PingMetricTaskStats[], records: PingRecord[]): Map<string, PingRecord[]> {
-  const grouped = buildRecordsByClient(records)
-  if (grouped.size)
-    return grouped
-
-  const syntheticRecords = stats
-    .filter(stat => stat.entity_id === nodeUuid && typeof stat.latest === 'number' && Number.isFinite(stat.latest))
-    .map((stat): PingRecord => ({
-      client: nodeUuid,
-      task_id: normalizeTaskId(stat.task_id),
-      time: new Date().toISOString(),
-      value: stat.latest!,
-    }))
-
-  return buildRecordsByClient(syntheticRecords)
-}
-
 async function loadPingMetricRecords(nodeUuid: string, hours: number, maxCount?: number): Promise<SharedPingRecordsState | null> {
   const [statsResult, metricsResult] = await Promise.allSettled([
     loadPingMetricStats({ entity_id: nodeUuid, hours, max_points: maxCount }),
@@ -304,6 +289,7 @@ async function loadPingMetricRecords(nodeUuid: string, hours: number, maxCount?:
             continue
 
           metricLossPoints.push({
+            taskId,
             time: point.time,
             value: point.value,
             count: isFiniteNumber(point.count) && point.count > 0 ? point.count : 1,
@@ -330,7 +316,7 @@ async function loadPingMetricRecords(nodeUuid: string, hours: number, maxCount?:
     }
   }
 
-  const recordsByClient = buildMetricRecordsByClient(nodeUuid, stats, metricRecords)
+  const recordsByClient = buildRecordsByClient(metricRecords)
   const exactLossTaskIds = new Set(
     stats
       .filter(stat => stat.total > 0 && !stat.loss_approximate && isFiniteNumber(stat.loss))
@@ -391,16 +377,16 @@ function startSharedPingRecordsRefresh(entry: SharedPingRecordsEntry, hours: num
   if (entry.refreshTimer)
     return
 
-  entry.refreshTimer = setInterval(() => {
+  entry.refreshTimer = subscribeVisibleRefresh(() => {
     void loadSharedPingRecords(entry, hours, maxCount, uuid).catch(() => {})
-  }, PING_RECORD_REFRESH_INTERVAL_MS)
+  })
 }
 
 function stopSharedPingRecordsRefresh(entry: SharedPingRecordsEntry): void {
   if (!entry.refreshTimer)
     return
 
-  clearInterval(entry.refreshTimer)
+  entry.refreshTimer()
   entry.refreshTimer = null
 }
 
@@ -764,6 +750,29 @@ export function useNodePingStats(
 
   return {
     stats,
+    taskStats: (taskId: number): NodePingStatsState => {
+      const { uuid: nodeUuid, hours, maxCount, enabled } = resolved.value
+      if (!enabled)
+        return createEmptyStats()
+      const state = getSharedPingRecordsEntry(hours, maxCount, nodeUuid).data.value
+      const records = (state?.recordsByClient.get(nodeUuid) ?? []).filter(record => record.task_id === taskId)
+      const metricStats = state?.metricStats?.filter(stat => normalizeTaskId(stat.task_id) === taskId)
+      const lossPoints = state?.metricLossPoints?.filter(point => point.taskId === taskId)
+      if (state?.source === 'metric') {
+        // Latest status is a value, not a history point. Do not fabricate a
+        // curve when only task statistics (and no recorded series) exist.
+        const result = buildStats(records, metricStats, lossPoints)
+        return { ...result, history: buildPingHistory(records, lossPoints) }
+      }
+      const valid = records.filter(record => record.value >= 0)
+      return {
+        avgLatency: average(valid.map(record => record.value)),
+        avgLoss: records.length ? (records.length - valid.length) / records.length * 100 : 0,
+        avgVolatility: 0,
+        history: buildPingHistory(records),
+        hasData: records.length > 0,
+      }
+    },
     loading,
     error,
     history: computed(() => stats.value.history),

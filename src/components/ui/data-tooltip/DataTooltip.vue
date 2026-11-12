@@ -54,6 +54,7 @@ const sizeStyle = computed(() => {
     <span
       v-if="content || $slots.content"
       role="tooltip"
+      data-slot="data-tooltip-content"
       :class="cn(
         'pointer-events-none absolute z-20 hidden rounded bg-foreground/80 p-1 text-[10px] leading-none text-background shadow-lg group-hover/data-tooltip:block group-focus-within/data-tooltip:block whitespace-normal break-words',
         placementClass[placement],
@@ -65,3 +66,11 @@ const sizeStyle = computed(() => {
     </span>
   </component>
 </template>
+
+<style scoped>
+/* Glass surface selectors must not repaint inverse tooltip text or background. */
+[data-slot='data-tooltip-content'] {
+  background-color: var(--color-foreground) !important;
+  color: var(--color-background) !important;
+}
+</style>

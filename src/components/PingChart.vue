@@ -10,13 +10,16 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useTouchTooltipTrigger } from '@/composables/useTouchTooltipTrigger'
 import { PING_RECORD_MAX_COUNT } from '@/constants/load'
 import { loadPingRecordsWithTasks } from '@/services/history.service'
 import { loadPingMetricStats, loadPublicPingTasks, queryMetrics } from '@/services/metrics.service'
 import { useAppStore } from '@/stores/app'
 import { ACCESSIBLE_LINE_TYPES, getChartSeriesPalette } from '@/utils/chartPalette'
 import { isPingMetric, normalizeMetricSeriesList, orderPingTasksByBackend, PING_LATENCY_METRIC, pingTaskId, pingTaskName } from '@/utils/metricSeries'
-import { cutPeakValues, interpolateNullsLinear } from '@/utils/recordHelper'
+import { resolvePingAxisScale } from '@/utils/pingChartAxisScale'
+import { escapePingTooltip, pingChartTaskLabels } from '@/utils/pingChartPresentation'
+import { smoothPingChartDisplayRows } from '@/utils/pingChartSmoothing'
 import '@/utils/echarts' // 共享 ECharts 配置
 
 const props = defineProps<{
@@ -55,10 +58,13 @@ const maxPingRecordPreserveTime = computed(() => appStore.publicSettings?.ping_r
 
 // 视图选项
 const presetViews = [
-  { label: '1 小时', hours: 1 },
-  { label: '6 小时', hours: 6 },
-  { label: '12 小时', hours: 12 },
+  { label: '1 小時', hours: 1 },
+  { label: '6 小時', hours: 6 },
+  { label: '12 小時', hours: 12 },
   { label: '1 天', hours: 24 },
+  { label: '7 天', hours: 168 },
+  { label: '15 天', hours: 360 },
+  { label: '30 天', hours: 720 },
 ]
 const CUSTOM_VIEW_LABEL = '自訂'
 const DEFAULT_CUSTOM_RANGE_HOURS = 24
@@ -159,6 +165,10 @@ const cutPeak = ref(false)
 const isTouchTooltipMode = ref(false)
 const activeTaskTooltipId = ref<number | null>(null)
 const smoothInfoTooltipOpen = ref(false)
+const touchTooltip = useTouchTooltipTrigger(isTouchTooltipMode, () => {
+  activeTaskTooltipId.value = null
+  smoothInfoTooltipOpen.value = false
+})
 
 const chartMargin = { top: 30, right: 24, bottom: 52, left: 56 }
 let coarsePointerMediaQuery: MediaQueryList | null = null
@@ -176,6 +186,8 @@ function syncTouchTooltipMode() {
 }
 
 function setTaskTooltipOpen(taskId: number, open: boolean) {
+  if (isTouchTooltipMode.value)
+    return
   activeTaskTooltipId.value = open ? taskId : activeTaskTooltipId.value === taskId ? null : activeTaskTooltipId.value
 }
 
@@ -476,17 +488,8 @@ const chartData = computed(() => {
   if (selectedKeys.length === 0)
     return []
 
-  if (cutPeak.value) {
-    data = cutPeakValues(data, selectedKeys)
-  }
-
-  if (selectedKeys.length > 0 && data.length > 0) {
-    data = interpolateNullsLinear(data, selectedKeys, {
-      maxGapMultiplier: 6,
-      minCapMs: 2 * 60_000,
-      maxCapMs: 30 * 60_000,
-    })
-  }
+  if (cutPeak.value)
+    data = smoothPingChartDisplayRows(data, selectedTaskIds.value)
 
   return data
 })
@@ -549,6 +552,7 @@ const latestValues = computed(() => {
 const selectedTasks = computed(() => {
   return tasks.value.filter(t => selectedTaskIds.value.includes(t.id))
 })
+const taskLabels = computed(() => pingChartTaskLabels(tasks.value))
 
 // 切换任务选中状态
 function toggleTask(taskId: number) {
@@ -604,6 +608,8 @@ const pingChartOption = computed(() => {
   const taskList = selectedTasks.value
   const data = chartData.value
   const hours = selectedHours.value
+  // 按数据自身量级固定 Y 轴，避免自动缩放把小波动也拉满整幅图。
+  const axisScale = resolvePingAxisScale(data, taskList.map(task => task.id))
 
   // 构建 series，确保颜色与卡片一致
   const series = taskList.map((task, index) => {
@@ -612,10 +618,11 @@ const pingChartOption = computed(() => {
       ? (ACCESSIBLE_LINE_TYPES[index % ACCESSIBLE_LINE_TYPES.length] ?? 'solid')
       : 'solid'
     return {
-      name: task.name,
+      name: taskLabels.value.get(task.id),
       type: 'line' as const,
       data: data.map(d => d[task.id] as number | null ?? null),
-      smooth: cutPeak.value ? 0.6 : 0.1,
+      smooth: cutPeak.value ? 0.5 : 0.35,
+      smoothMonotone: 'x' as const,
       showSymbol: false,
       connectNulls: false,
       lineStyle: { width: 1.5, color, cap: 'round' as const, type: lineType },
@@ -661,10 +668,10 @@ const pingChartOption = computed(() => {
         for (const item of sortedParams) {
           if (item.value !== null && item.value !== undefined) {
             // 通过任务名找到对应的任务ID，再获取颜色
-            const task = tasks.value.find(t => t.name === item.seriesName)
+            const task = tasks.value.find(t => taskLabels.value.get(t.id) === item.seriesName)
             const color = task ? colorMap.get(task.id) || chartColors[0] : chartColors[0]
             const colorDot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:8px;flex-shrink:0"></span>`
-            html += `<div style="display:flex;align-items:center">${colorDot}<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.seriesName}</span><span style="margin-left:auto;font-weight:600;margin-left:16px;font-variant-numeric:tabular-nums">${Math.round(item.value)} ms</span></div>`
+            html += `<div style="display:flex;align-items:center">${colorDot}<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapePingTooltip(item.seriesName)}</span><span style="margin-left:auto;font-weight:600;margin-left:16px;font-variant-numeric:tabular-nums">${Math.round(item.value)} ms</span></div>`
           }
         }
         html += '</div>'
@@ -679,13 +686,14 @@ const pingChartOption = computed(() => {
       itemGap: 16,
       icon: 'roundRect',
       textStyle: { fontSize: 11, color: chartThemeColors.value.textSecondary },
-      data: taskList.map(t => t.name),
+      data: taskList.map(t => taskLabels.value.get(t.id)),
     },
     grid: chartMargin,
     xAxis: {
       type: 'category',
       data: data.map(d => formatTime(d.time as string, showDateInAxis.value)),
       axisLabel: {
+        hideOverlap: true,
         fontSize: 11,
         color: chartThemeColors.value.textSecondary,
         margin: 12,
@@ -700,6 +708,8 @@ const pingChartOption = computed(() => {
     yAxis: {
       type: 'value',
       name: '延遲 (ms)',
+      min: axisScale?.min,
+      max: axisScale?.max,
       nameTextStyle: { color: chartThemeColors.value.textSecondary },
       axisLabel: { fontSize: 11, color: chartThemeColors.value.textSecondary, formatter: '{value}' },
       axisLine: { show: false },
@@ -718,6 +728,7 @@ const pingChartOption = computed(() => {
 // ==================== 生命周期 ====================
 
 watch(selectedView, () => {
+  touchTooltip.reset()
   selectedTaskIds.value = []
   if (isCustomRange.value)
     ensureDefaultCustomRange()
@@ -789,13 +800,13 @@ onBeforeUnmount(() => {
           <Input
             v-model="customStartInput"
             type="datetime-local"
-            aria-label="延迟图开始时间"
+            aria-label="延遲圖開始時間"
             class="h-8 bg-background/50 text-xs"
           />
           <Input
             v-model="customEndInput"
             type="datetime-local"
-            aria-label="延迟图结束时间"
+            aria-label="延遲圖結束時間"
             class="h-8 bg-background/50 text-xs"
           />
           <Button
@@ -813,7 +824,7 @@ onBeforeUnmount(() => {
           {{ customRangeError }}
         </div>
         <div v-else-if="legacyCustomRangeFallback" class="text-[11px] text-muted-foreground">
-          旧接口按可用保留时长回溯，再裁剪到所选区间
+          舊介面依可用保留時長回溯，再裁剪至所選區間
         </div>
       </div>
     </div>
@@ -837,7 +848,7 @@ onBeforeUnmount(() => {
             v-for="task in latestValues" :key="task.id"
             :data-ping-task-id="task.id"
             class="p-2 rounded-md bg-background/50 hover:bg-background hover:shadow-[0_0_0_2px] hover:shadow-primary/10 flex gap-3 cursor-pointer select-none transition-all items-center"
-            :class="[!selectedTaskIds.includes(task.id) && 'opacity-30']"
+            :class="[!selectedTaskIds.includes(task.id) && 'ring-1 ring-inset ring-border/80']"
             :onmouseover="(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.borderColor = task.color)"
             :onmouseout="(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.borderColor = '')"
             @click="toggleTask(task.id)"
@@ -847,64 +858,70 @@ onBeforeUnmount(() => {
                 <div class="flex gap-2 items-center">
                   <div class="rounded h-4 w-1" :style="{ backgroundColor: task.color }" />
                   <span class="text-sm font-semibold truncate">{{ task.name }}</span>
+                  <span v-if="!selectedTaskIds.includes(task.id)" class="shrink-0 text-[10px] text-muted-foreground">未顯示</span>
                   <div class="flex-1" />
                   <Tooltip
                     :open="isTouchTooltipMode ? activeTaskTooltipId === task.id : undefined"
                     @update:open="(open) => setTaskTooltipOpen(task.id, open)"
                   >
                     <TooltipTrigger as-child>
-                      <Button variant="ghost" size="icon-xs" class="text-slate-500" @click.stop="toggleTaskTooltip(task.id)">
+                      <Button
+                        data-ping-tooltip-trigger variant="ghost" size="icon-xs" class="text-muted-foreground"
+                        @pointerdown="touchTooltip.pointerDown" @pointermove="touchTooltip.pointerMove" @pointercancel="touchTooltip.cancel"
+                        @pointerup="touchTooltip.pointerUp($event, () => toggleTaskTooltip(task.id))"
+                        @click="touchTooltip.click($event, () => toggleTaskTooltip(task.id))"
+                      >
                         <Icon icon="carbon:information" :width="14" :height="14" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent class="!rounded p-3">
                       <div class="text-xs gap-x-4 gap-y-1.5 grid grid-cols-4">
                         <template v-if="task.min !== undefined">
-                          <span class="text-muted-foreground">最小</span>
+                          <span class="text-primary-foreground/80">最小</span>
                           <span class="font-medium">{{ Math.round(task.min) }} ms</span>
                         </template>
                         <template v-if="task.max !== undefined">
-                          <span class="text-muted-foreground">最大</span>
+                          <span class="text-primary-foreground/80">最大</span>
                           <span class="font-medium">{{ Math.round(task.max) }} ms</span>
                         </template>
                         <template v-if="task.avg !== undefined">
-                          <span class="text-muted-foreground">平均</span>
+                          <span class="text-primary-foreground/80">平均</span>
                           <span class="font-medium">{{ Math.round(task.avg) }} ms</span>
                         </template>
                         <template v-if="task.latest !== undefined">
-                          <span class="text-muted-foreground">最新</span>
+                          <span class="text-primary-foreground/80">最新</span>
                           <span class="font-medium">{{ Math.round(task.latest) }} ms</span>
                         </template>
                         <template v-if="task.p50 !== undefined">
-                          <span class="text-muted-foreground">P50</span>
+                          <span class="text-primary-foreground/80">P50</span>
                           <span class="font-medium">{{ Math.round(task.p50) }} ms</span>
                         </template>
                         <template v-if="task.p99 !== undefined">
-                          <span class="text-muted-foreground">P99</span>
+                          <span class="text-primary-foreground/80">P99</span>
                           <span class="font-medium">{{ Math.round(task.p99) }} ms</span>
                         </template>
                         <template v-if="task.p99_p50_ratio !== undefined">
-                          <span class="text-muted-foreground">波動率</span>
+                          <span class="text-primary-foreground/80">波動率</span>
                           <span class="font-medium">{{ task.p99_p50_ratio.toFixed(2) }}</span>
                         </template>
                         <template v-if="task.interval !== undefined">
-                          <span class="text-muted-foreground">頻率</span>
+                          <span class="text-primary-foreground/80">頻率</span>
                           <span class="font-medium">{{ task.interval }}s</span>
                         </template>
                         <template v-if="task.type">
-                          <span class="text-muted-foreground">類型</span>
+                          <span class="text-primary-foreground/80">類型</span>
                           <span class="font-medium">{{ task.type.toUpperCase() }}</span>
                         </template>
                         <template v-if="task.stddev !== undefined">
-                          <span class="text-muted-foreground">標準差</span>
+                          <span class="text-primary-foreground/80">標準差</span>
                           <span class="font-medium">{{ task.stddev.toFixed(1) }}</span>
                         </template>
                         <template v-if="task.total !== undefined">
-                          <span class="text-muted-foreground">總數</span>
+                          <span class="text-primary-foreground/80">總數</span>
                           <span class="font-medium">{{ task.total }}</span>
                         </template>
                         <template v-if="task.valid !== undefined">
-                          <span class="text-muted-foreground">有效</span>
+                          <span class="text-primary-foreground/80">有效</span>
                           <span class="font-medium">{{ task.valid }}</span>
                         </template>
                       </div>
@@ -939,15 +956,20 @@ onBeforeUnmount(() => {
               </Button>
               <Tooltip
                 :open="isTouchTooltipMode ? smoothInfoTooltipOpen : undefined"
-                @update:open="(open) => smoothInfoTooltipOpen = open"
+                @update:open="(open) => { if (!isTouchTooltipMode) smoothInfoTooltipOpen = open }"
               >
                 <TooltipTrigger as-child>
-                  <Button variant="ghost" size="icon-xs" class="text-slate-500" @click.stop="toggleSmoothInfoTooltip">
+                  <Button
+                    data-ping-tooltip-trigger variant="ghost" size="icon-xs" class="text-muted-foreground"
+                    @pointerdown="touchTooltip.pointerDown" @pointermove="touchTooltip.pointerMove" @pointercancel="touchTooltip.cancel"
+                    @pointerup="touchTooltip.pointerUp($event, toggleSmoothInfoTooltip)"
+                    @click="touchTooltip.click($event, toggleSmoothInfoTooltip)"
+                  >
                     <Icon icon="carbon:information" :width="14" :height="14" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <span>使用 EWMA 演算法平滑資料並濾除突波</span>
+                  <span>使用 EWMA 演算法平滑顯示，保留缺失時段；統計及歷史原始值不變</span>
                 </TooltipContent>
               </Tooltip>
             </div>

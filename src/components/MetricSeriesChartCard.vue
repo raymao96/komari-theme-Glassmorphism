@@ -2,7 +2,12 @@
 import { computed } from 'vue'
 import VChart from 'vue-echarts'
 import { CardX } from '@/components/ui/card-x'
+import { METRIC_CHART_GRID, METRIC_CHART_LEGEND } from '@/constants/chart'
+import { useAppStore } from '@/stores/app'
+import { getMetricChartTheme } from '@/utils/chartPalette'
 import { formatBytes } from '@/utils/helper'
+import { resolveValueAxisScale } from '@/utils/pingChartAxisScale'
+import { escapePingTooltip } from '@/utils/pingChartPresentation'
 import MetricChartHeader from './MetricChartHeader.vue'
 import '@/utils/echarts'
 
@@ -55,6 +60,16 @@ function formatMetricValue(value: number | null | undefined, kind: MetricValueKi
 }
 
 const primaryKind = computed<MetricValueKind>(() => props.series[0]?.kind ?? 'count')
+const appStore = useAppStore()
+const chartThemeColors = computed(() => getMetricChartTheme(appStore.isDark))
+
+// 延迟类图表按自身量级固定 Y 轴，避免自动缩放把小波动拉满整幅图；
+// 百分比保持 0-100 固定量程，其他指标维持 ECharts 自动缩放。
+const latencyAxisScale = computed(() => {
+  if (props.percentScale || primaryKind.value !== 'milliseconds')
+    return undefined
+  return resolveValueAxisScale(props.series.flatMap(item => item.data.map(point => point[1])))
+})
 
 const latestText = computed(() => {
   if (props.latest)
@@ -74,10 +89,10 @@ const chartOption = computed(() => ({
   tooltip: {
     trigger: 'axis',
     confine: true,
-    backgroundColor: 'var(--color-popover)',
-    borderColor: 'var(--color-border)',
+    backgroundColor: chartThemeColors.value.tooltipBg,
+    borderColor: chartThemeColors.value.borderColor,
     borderWidth: 1,
-    textStyle: { color: 'var(--color-popover-foreground)', fontSize: 12 },
+    textStyle: { color: chartThemeColors.value.text, fontSize: 12 },
     formatter: (params: unknown) => {
       const items = params as Array<{ axisValueLabel?: string, color: string, data: [string, number | null], seriesIndex: number, seriesName: string }>
       if (!items.length)
@@ -85,38 +100,36 @@ const chartOption = computed(() => ({
       const rows = items.map((item) => {
         const source = props.series[item.seriesIndex]
         const kind = source?.kind ?? primaryKind.value
-        return `<div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:2px;background:${item.color};flex:none"></span><span>${item.seriesName}</span><strong style="margin-left:auto;padding-left:12px">${formatMetricValue(item.data?.[1], kind)}</strong></div>`
+        return `<div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:2px;background:${item.color};flex:none"></span><span>${escapePingTooltip(item.seriesName)}</span><strong style="margin-left:auto;padding-left:12px">${formatMetricValue(item.data?.[1], kind)}</strong></div>`
       }).join('')
-      return `<div style="margin-bottom:6px;color:var(--color-muted-foreground)">${items[0]?.axisValueLabel ?? ''}</div><div style="display:flex;flex-direction:column;gap:4px">${rows}</div>`
+      return `<div style="margin-bottom:6px;color:var(--color-muted-foreground)">${escapePingTooltip(items[0]?.axisValueLabel ?? '')}</div><div style="display:flex;flex-direction:column;gap:4px">${rows}</div>`
     },
   },
   legend: {
-    type: 'scroll',
-    bottom: 2,
-    itemWidth: 10,
-    itemHeight: 8,
-    textStyle: { color: 'var(--color-muted-foreground)', fontSize: 10 },
+    ...METRIC_CHART_LEGEND,
+    textStyle: { ...METRIC_CHART_LEGEND.textStyle, color: chartThemeColors.value.textSecondary },
+    pageTextStyle: { color: chartThemeColors.value.textSecondary },
   },
-  grid: { top: 20, right: 18, bottom: 48, left: 58 },
+  grid: METRIC_CHART_GRID,
   xAxis: {
     type: 'time',
-    axisLine: { lineStyle: { color: 'var(--color-border)' } },
+    axisLine: { lineStyle: { color: chartThemeColors.value.borderColor } },
     axisTick: { show: false },
-    axisLabel: { color: 'var(--color-muted-foreground)', fontSize: 10, hideOverlap: true },
+    axisLabel: { color: chartThemeColors.value.textSecondary, fontSize: 11, margin: 12, hideOverlap: true },
     splitLine: { show: false },
   },
   yAxis: {
     type: 'value',
-    min: props.percentScale ? 0 : undefined,
-    max: props.percentScale ? 100 : undefined,
+    min: props.percentScale ? 0 : latencyAxisScale.value?.min,
+    max: props.percentScale ? 100 : latencyAxisScale.value?.max,
     axisLine: { show: false },
     axisTick: { show: false },
     axisLabel: {
-      color: 'var(--color-muted-foreground)',
-      fontSize: 10,
+      color: chartThemeColors.value.textSecondary,
+      fontSize: 11,
       formatter: (value: number) => formatMetricValue(value, primaryKind.value),
     },
-    splitLine: { lineStyle: { color: 'var(--color-border)', opacity: 0.45 } },
+    splitLine: { lineStyle: { color: chartThemeColors.value.splitLineColor, type: 'dashed' } },
   },
   series: props.series.map(item => ({
     name: item.name,
@@ -124,7 +137,9 @@ const chartOption = computed(() => ({
     data: item.data,
     connectNulls: false,
     showSymbol: false,
-    smooth: false,
+    // 延迟曲线平滑可钳制到 x 单调，避免平滑过冲产生尖锐毛刺。
+    smooth: item.kind === 'milliseconds' ? 0.35 : false,
+    smoothMonotone: item.kind === 'milliseconds' ? 'x' : undefined,
     lineStyle: { width: 1.6, type: item.dashed ? 'dashed' : 'solid', color: item.color },
   })),
 }))
@@ -132,6 +147,7 @@ const chartOption = computed(() => ({
 
 <template>
   <CardX
+    data-metric-series-chart-card
     size="small"
     class="bg-background/50 border-none hover:bg-background transition-all rounded-md"
     :style="{ order }"

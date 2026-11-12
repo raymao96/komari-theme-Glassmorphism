@@ -16,6 +16,7 @@ import { useAppStore } from '@/stores/app'
 const props = defineProps<{
   nodes?: NodeData[]
 }>()
+const emit = defineEmits<{ renderError: [] }>()
 const appStore = useAppStore()
 
 const containerRef = ref<HTMLDivElement>()
@@ -250,7 +251,13 @@ function startGlobe() {
     resetStoppedView()
     triggerStaticRedrawWindow()
   }
-  globe = createGlobe(canvasRef.value, buildInitialOptions())
+  try {
+    globe = createGlobe(canvasRef.value, buildInitialOptions())
+  }
+  catch {
+    emit('renderError')
+    return
+  }
   requestAnimationFrame(() => {
     updateGlobeFrame()
     applyLabelStyles()
@@ -370,6 +377,7 @@ function onPointerUp(e: PointerEvent) {
     <canvas
       ref="canvasRef"
       class="earth-globe-canvas absolute inset-0 w-full h-full select-none touch-none cursor-grab active:cursor-grabbing"
+      @webglcontextlost.prevent="emit('renderError')"
       @pointerdown="onPointerDown" @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerUp"
     />
 

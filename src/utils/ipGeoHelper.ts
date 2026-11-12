@@ -1,10 +1,14 @@
 /**
  * 根据 IP 在线查询地理坐标与城市，用于地球的城市级定位。
  *
- * 多个免费 HTTPS 服务依次回退（ip.sb → ipinfo.io → ipwho.is → ipapi.co），任一返回经纬度即采用；
+ * 多个 HTTPS 服务依次回退（默认 ip.sb → ipinfo.io → ipwho.is → ipapi.co，可在主题设置里改），
+ * 任一返回经纬度即采用；
  * 结果按 IP 缓存到 localStorage（带版本与过期时间），避免重复请求与频率限制。
  * 全部失败时写入短期负缓存，调用方应回落到国家级定位。
  */
+
+import { isPublicIp } from '@/utils/ipAddress'
+import { DEFAULT_IP_GEO_PROVIDER_URLS } from '@/utils/ipGeoProviders'
 
 export interface IpGeo {
   lat: number
@@ -18,10 +22,11 @@ export interface IpGeo {
 }
 
 const CACHE_PREFIX = 'komari-theme-emerald:ipgeo'
-const CACHE_VERSION = 3
+const CACHE_VERSION = 5
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000 // 30 天
 const NEGATIVE_CACHE_TTL_MS = 6 * 60 * 60 * 1000 // 6 小时
 const IP_GEO_TIMEOUT_MS = 5000
+const IP_PLACEHOLDER_REGEX = /\{ip\}/gi
 const PROVIDER_BACKOFF_BASE_MS = 60 * 1000
 const PROVIDER_BACKOFF_MAX_MS = 30 * 60 * 1000
 const ASN_ORG_PREFIX_REGEX = /^AS\d+/
@@ -38,15 +43,15 @@ interface ProviderState {
   blockedUntil: number
 }
 
-type Provider = (ip: string) => Promise<IpGeo | null>
+type Provider = (ip: string, template: string) => Promise<IpGeo | null>
 
 interface ProviderEntry {
   id: string
   lookup: Provider
 }
 
-function cacheKey(ip: string): string {
-  return `${CACHE_PREFIX}:${ip}`
+function cacheKey(ip: string, configuration: string): string {
+  return `${CACHE_PREFIX}:${encodeURIComponent(configuration)}:${ip}`
 }
 
 function isValidGeo(geo: unknown): geo is IpGeo {
@@ -55,13 +60,14 @@ function isValidGeo(geo: unknown): geo is IpGeo {
   const g = geo as Record<string, unknown>
   return typeof g.lat === 'number' && Number.isFinite(g.lat) && g.lat >= -90 && g.lat <= 90
     && typeof g.lng === 'number' && Number.isFinite(g.lng) && g.lng >= -180 && g.lng <= 180
+    && !(g.lat === 0 && g.lng === 0)
 }
 
-function readCache(ip: string): { geo: IpGeo | null, negative: boolean } | null {
+function readCache(ip: string, configuration: string): { geo: IpGeo | null, negative: boolean } | null {
   if (typeof window === 'undefined')
     return null
   try {
-    const raw = window.localStorage.getItem(cacheKey(ip))
+    const raw = window.localStorage.getItem(cacheKey(ip, configuration))
     if (!raw)
       return null
     const parsed = JSON.parse(raw) as CacheEntry
@@ -83,19 +89,19 @@ function readCache(ip: string): { geo: IpGeo | null, negative: boolean } | null 
   }
 }
 
-function writeCache(ip: string, geo: IpGeo): void {
-  writeCacheEntry(ip, { version: CACHE_VERSION, updatedAt: Date.now(), geo })
+function writeCache(ip: string, configuration: string, geo: IpGeo): void {
+  writeCacheEntry(ip, configuration, { version: CACHE_VERSION, updatedAt: Date.now(), geo })
 }
 
-function writeNegativeCache(ip: string): void {
-  writeCacheEntry(ip, { version: CACHE_VERSION, updatedAt: Date.now(), geo: null, negative: true })
+function writeNegativeCache(ip: string, configuration: string): void {
+  writeCacheEntry(ip, configuration, { version: CACHE_VERSION, updatedAt: Date.now(), geo: null, negative: true })
 }
 
-function writeCacheEntry(ip: string, entry: CacheEntry): void {
+function writeCacheEntry(ip: string, configuration: string, entry: CacheEntry): void {
   if (typeof window === 'undefined')
     return
   try {
-    window.localStorage.setItem(cacheKey(ip), JSON.stringify(entry))
+    window.localStorage.setItem(cacheKey(ip, configuration), JSON.stringify(entry))
   }
   catch {
     // 忽略写盘失败（隐私模式 / 配额已满）
@@ -138,6 +144,11 @@ async function fetchWithTimeout(url: string, timeoutMs = IP_GEO_TIMEOUT_MS): Pro
 
 function normalizeIpPath(ip: string): string {
   return encodeURIComponent(ip.trim())
+}
+
+/** 把 URL 模板里的 `{ip}` 换成目标 IP 并做百分号编码。 */
+function fillIpPlaceholder(template: string, ip: string): string {
+  return template.replace(IP_PLACEHOLDER_REGEX, () => normalizeIpPath(ip))
 }
 
 /** ip.sb：返回 latitude / longitude / city / country_code */
@@ -238,15 +249,63 @@ const PROVIDERS: ProviderEntry[] = [
   { id: 'ipapi.co', lookup: fromIpapiCo },
 ]
 
+/** URL 模板 → 内置解析器；自定义地址走通用解析。 */
+const BUILTIN_BY_URL = new Map<string, ProviderEntry>([
+  ['https://api.ip.sb/geoip/{ip}', PROVIDERS[0]!],
+  ['https://ipinfo.io/{ip}/json', PROVIDERS[1]!],
+  ['https://ipwho.is/{ip}', PROVIDERS[2]!],
+  ['https://ipapi.co/{ip}/json/', PROVIDERS[3]!],
+])
+
+/**
+ * 通用解析：兼容常见 geo 接口字段名。管理员自建接口只要返回下列任一组合即可，
+ * 无需主题侧再做适配。
+ */
+const fromGenericJson: Provider = async (ip, template) => {
+  const res = await fetchWithTimeout(fillIpPlaceholder(template, ip))
+  if (!res.ok)
+    return null
+  const d = await safeJson(res)
+  if (!d)
+    return null
+
+  const loc = typeof d.loc === 'string' ? d.loc.split(',') : []
+  const lat = toFinite(d.latitude) ?? toFinite(d.lat) ?? toFinite(loc[0])
+  const lng = toFinite(d.longitude) ?? toFinite(d.lon) ?? toFinite(d.lng) ?? toFinite(loc[1])
+  if (lat === null || lng === null)
+    return null
+
+  const conn = (d.connection ?? {}) as Record<string, unknown>
+  const rawAsn = typeof d.asn === 'number' ? `AS${d.asn}` : d.asn
+  return {
+    lat,
+    lng,
+    city: pickString(d.city),
+    countryCode: pickString(d.country_code, d.country),
+    org: pickString(d.org, d.organization, d.isp, conn.org, conn.isp),
+    asn: pickString(rawAsn, conn.asn),
+  }
+}
+
+/** 当前生效的 URL 回退链；空数组表示只用后台 region。 */
+let activeProviderUrls: string[] = [...DEFAULT_IP_GEO_PROVIDER_URLS]
+
+export function setIpGeoProviderUrls(urls: string[] | null): void {
+  activeProviderUrls = urls === null ? [...DEFAULT_IP_GEO_PROVIDER_URLS] : [...urls]
+}
+
 const providerStates = new Map<string, ProviderState>()
 
-// 轮询起始服务：每次查询从不同站点开始，避免所有请求都打到同一站点导致频控后整体失败
-let providerCursor = 0
-function orderedProviders(): ProviderEntry[] {
-  const n = PROVIDERS.length
-  const start = providerCursor % n
-  providerCursor = (providerCursor + 1) % n
-  const providers = Array.from({ length: n }, (_, i) => PROVIDERS[(start + i) % n]!)
+interface ResolvedProvider extends ProviderEntry {
+  template: string
+}
+
+function orderedProviders(urls: string[]): ResolvedProvider[] {
+  // 配置为空时表示「只用后台 region」，不发起任何在线查询。
+  if (!urls.length)
+    return []
+  const providers = urls
+    .map(url => ({ ...(BUILTIN_BY_URL.get(url) ?? { id: url, lookup: fromGenericJson }), template: url }))
   const now = Date.now()
   const available = providers.filter(provider => (providerStates.get(provider.id)?.blockedUntil ?? 0) <= now)
   return available.length > 0 ? available : providers
@@ -271,25 +330,28 @@ const inflight = new Map<string, Promise<IpGeo | null>>()
  */
 export async function lookupIpGeo(ip: string): Promise<IpGeo | null> {
   const normalizedIp = ip.trim()
-  if (!normalizedIp)
+  const urls = [...activeProviderUrls]
+  if (!isPublicIp(normalizedIp) || !urls.length)
     return null
 
-  const cached = readCache(normalizedIp)
+  const configuration = JSON.stringify(urls)
+  const key = cacheKey(normalizedIp, configuration)
+  const cached = readCache(normalizedIp, configuration)
   if (cached)
     return cached.geo
 
-  const existing = inflight.get(normalizedIp)
+  const existing = inflight.get(key)
   if (existing)
     return existing
 
   const task = (async () => {
-    // 从轮询选出的起始站点开始，依次回退，分摊请求压力
-    for (const provider of orderedProviders()) {
+    // Respect configured priority; only failures/backoff advance to another source.
+    for (const provider of orderedProviders(urls)) {
       try {
-        const geo = await provider.lookup(normalizedIp)
+        const geo = await provider.lookup(normalizedIp, provider.template)
         if (geo && isValidGeo(geo)) {
           markProviderSuccess(provider.id)
-          writeCache(normalizedIp, geo)
+          writeCache(normalizedIp, configuration, geo)
           return geo
         }
         markProviderFailure(provider.id)
@@ -298,15 +360,15 @@ export async function lookupIpGeo(ip: string): Promise<IpGeo | null> {
         markProviderFailure(provider.id)
       }
     }
-    writeNegativeCache(normalizedIp)
+    writeNegativeCache(normalizedIp, configuration)
     return null
   })()
 
-  inflight.set(normalizedIp, task)
+  inflight.set(key, task)
   try {
     return await task
   }
   finally {
-    inflight.delete(normalizedIp)
+    inflight.delete(key)
   }
 }

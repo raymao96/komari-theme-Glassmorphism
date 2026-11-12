@@ -53,6 +53,13 @@ const metricDefinitionsCache = new SharedCache<MetricDefinition[]>({
   cleanupInterval: CACHE_CONFIG.cleanup.interval,
 })
 
+// Adapted from thinkemm's public Ping task cache: metadata changes slowly.
+const publicPingTasksCache = new SharedCache<PingTaskInfo[]>({
+  maxSize: 1,
+  ttl: CACHE_CONFIG.request.ttl,
+  cleanupInterval: CACHE_CONFIG.cleanup.interval,
+})
+
 export function getMetricDefinitionsRequestKey(): string {
   return 'metrics:definitions'
 }
@@ -143,9 +150,14 @@ export async function loadPingMetricStats(params: PingMetricStatsParams): Promis
 }
 
 export async function loadPublicPingTasks(): Promise<PingTaskInfo[]> {
-  return requestManager.run(
-    getPublicPingTasksRequestKey(),
+  const key = getPublicPingTasksRequestKey()
+  const cached = publicPingTasksCache.get(key)
+  if (cached)
+    return cached
+  const tasks = await requestManager.run(
+    key,
     async () => getSharedRpc().getPublicPingTasks(),
     { shouldRetry: shouldRetryMetricRequest },
   )
+  return publicPingTasksCache.set(key, tasks)
 }
